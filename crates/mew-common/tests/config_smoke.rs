@@ -4,5 +4,5 @@ use mew_common::MewConfig;
 fn default_config_is_mew() {
     let cfg = MewConfig::default();
     assert_eq!(cfg.identity.display_name, "mew");
-    assert_eq!(cfg.providers.default, "openai/codex");
+    assert_eq!(cfg.providers.default, "openai");
 }
