@@ -14,6 +14,7 @@ pub fn run(paths: &MewPaths, cfg: &MewConfig) -> Result<()> {
         ("display name", cfg.identity.display_name.clone()),
         ("theme", cfg.style.theme.clone()),
         ("default provider", cfg.providers.default.clone()),
+        ("active model", cfg.providers.active_model.clone()),
         ("git", found("git")),
         ("rg", found("rg")),
         ("curl", found("curl")),

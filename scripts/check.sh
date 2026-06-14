@@ -24,6 +24,10 @@ cargo run -p mew-cli -- --help >/dev/null
 cargo run -p mew-cli -- doctor >/dev/null
 cargo run -p mew-cli -- init --dry-run >/dev/null
 cargo run -p mew-cli -- style preview >/dev/null
+cargo run -p mew-cli -- provider list >/dev/null
+cargo run -p mew-cli -- model list >/dev/null
+cargo run -p mew-cli -- model show >/dev/null
+cargo run -p mew-cli -- session list >/dev/null
 
 echo
 echo "purrfect."

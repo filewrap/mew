@@ -40,15 +40,9 @@ Status: done
 - [x] add doctor command
 - [x] add `mew init --dry-run`
 - [x] add phrase bank
-- [x] add basic tables/cards/banner/code/diff preview
-- [x] polish terminal capability detection
-- [x] add more rich themes
-- [x] add markdown/code/diff renderer
-- [x] add spinner animation helpers
 - [x] add responsive terminal wrapper
 - [x] add tiny/narrow/normal/wide layout classes
 - [x] add tests
-- [x] add CI
 
 ## Phase 1 Learnings
 
@@ -61,22 +55,38 @@ Status: done
 
 ## Phase 2 — Provider Brain v0
 
-Status: next
+Status: in progress
 
-- [ ] create `mew-provider`
-- [ ] provider trait
-- [ ] OpenAI-compatible adapter
-- [ ] OpenAI/Codex preset
-- [ ] OpenRouter preset
-- [ ] Gemini provider
-- [ ] config env key loading
-- [ ] `mew provider list`
-- [ ] `mew provider test`
-- [ ] `mew model list`
-- [ ] `mew model use`
-- [ ] `mew ask`
-- [ ] `mew chat`
+- [x] create `mew-provider`
+- [x] create `mew-session`
+- [x] provider trait
+- [x] OpenAI-compatible adapter
+- [x] OpenAI/Codex preset
+- [x] OpenRouter preset
+- [x] Gemini provider
+- [x] config env key loading
+- [x] default model config
+- [x] per-provider models
+- [x] active model setting
+- [x] custom OpenAI-compatible provider config
+- [x] async session save/load/list
+- [x] `mew provider list`
+- [x] `mew provider test`
+- [x] `mew model list`
+- [x] `mew model use`
+- [x] `mew model show`
+- [x] `mew ask`
+- [x] `mew chat`
+- [x] `mew session list`
+- [x] `mew session show`
+- [x] Termux-friendly install script
 - [ ] streaming renderer
+- [ ] OAuth placeholder commands
+- [ ] provider remove/update commands
+- [ ] interactive provider add wizard
+- [ ] better model metadata command
+- [ ] retry/backoff
+- [ ] network timeout config
 
 ## Phase 3 — Project Init + Context Sniffer
 

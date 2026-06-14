@@ -1,5 +1,10 @@
+pub mod ask;
+pub mod chat;
 pub mod config;
 pub mod doctor;
 pub mod init;
+pub mod model;
 pub mod name;
+pub mod provider;
+pub mod session;
 pub mod style;

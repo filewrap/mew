@@ -7,7 +7,8 @@ use clap::Parser;
 use mew_common::{MewConfig, MewPaths};
 use mew_ui::{clear_screen, hint_card, startup_banner};
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_target(false)
         .without_time()
@@ -24,6 +25,11 @@ fn main() -> Result<()> {
         Some(Commands::Name(cmd)) => commands::name::run(&paths, &mut cfg, cmd)?,
         Some(Commands::Style(cmd)) => commands::style::run(&paths, &mut cfg, cmd)?,
         Some(Commands::Config(cmd)) => commands::config::run(&paths, &cfg, cmd)?,
+        Some(Commands::Provider(cmd)) => commands::provider::run(&paths, &mut cfg, cmd).await?,
+        Some(Commands::Model(cmd)) => commands::model::run(&paths, &mut cfg, cmd).await?,
+        Some(Commands::Ask { prompt, model }) => commands::ask::run(&paths, &mut cfg, prompt, model).await?,
+        Some(Commands::Chat { model }) => commands::chat::run(&paths, &mut cfg, model).await?,
+        Some(Commands::Session(cmd)) => commands::session::run(&paths, cmd).await?,
         None => {
             clear_screen();
             println!("{}", startup_banner(&cfg, "not initialized"));
@@ -31,9 +37,9 @@ fn main() -> Result<()> {
             println!(
                 "{}",
                 hint_card(&[
-                    "enter a task soon: mew ask \"what does this repo do?\"",
-                    "sniff this project: mew init",
-                    "change the fur: mew style preview",
+                    "ask: mew ask \"what does this repo do?\"",
+                    "provider: mew provider list",
+                    "model: mew model list",
                 ])
             );
         }

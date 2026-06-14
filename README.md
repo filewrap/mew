@@ -37,3 +37,52 @@ cargo run -p mew-cli -- name show
 ## License
 
 Apache-2.0
+
+
+## Install
+
+### Termux / Linux smart installer
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mahesh953-hub/mew/main/scripts/install.sh | bash
+```
+
+Custom repo:
+
+```bash
+MEW_REPO_URL=https://github.com/mahesh953-hub/mew bash scripts/install.sh
+```
+
+### Cargo
+
+```bash
+cargo install --git https://github.com/mahesh953-hub/mew --package mew-cli --force
+```
+
+## Providers
+
+```bash
+export OPENAI_API_KEY="..."
+export OPENROUTER_API_KEY="..."
+export GEMINI_API_KEY="..."
+
+mew provider list
+mew provider test openai
+mew provider test openrouter
+mew provider test gemini
+
+mew model list
+mew model use openai/codex-mini-latest
+mew model use openrouter/qwen/qwen-2.5-coder-32b-instruct
+mew model use gemini/gemini-2.5-flash
+
+mew ask "hello"
+mew chat
+```
+
+## Sessions
+
+```bash
+mew session list
+mew session show <id>
+```

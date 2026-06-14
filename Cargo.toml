@@ -2,7 +2,9 @@
 members = [
   "crates/mew-cli",
   "crates/mew-common",
-  "crates/mew-ui"
+  "crates/mew-ui",
+  "crates/mew-provider",
+  "crates/mew-session"
 ]
 resolver = "2"
 
@@ -35,3 +37,10 @@ terminal_size = "0.3"
 textwrap = "0.16"
 unicode-width = "0.1"
 strip-ansi-escapes = "0.2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "io-util", "time"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+async-trait = "0.1"
+futures-util = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+rpassword = "7"
