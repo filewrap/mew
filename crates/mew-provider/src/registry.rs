@@ -4,9 +4,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use mew_common::{CustomProviderConfig, MewConfig, ModelConfig};
 
-use crate::{
-    GeminiProvider, OpenAiCompatibleProvider, Provider, ProviderInfo, ProviderModel,
-};
+use crate::{GeminiProvider, OpenAiCompatibleProvider, Provider, ProviderInfo, ProviderModel};
 
 pub struct ProviderRegistry {
     providers: BTreeMap<String, Arc<dyn Provider>>,
@@ -20,75 +18,75 @@ impl ProviderRegistry {
 
         if cfg.providers.openai.enabled {
             let models = convert_models("openai", &cfg.providers.openai.models);
-            providers.insert(
-                "openai".to_string(),
-                Arc::new(OpenAiCompatibleProvider {
-                    id: "openai".to_string(),
-                    api_key_env: cfg.providers.openai.api_key_env.clone(),
-                    base_url: cfg.providers.openai.base_url.clone(),
-                    default_model: cfg.providers.openai.default_model.clone(),
-                    models,
-                    app_title: "mew".to_string(),
-                    app_url: "https://github.com/mew-agent/mew".to_string(),
-                }),
-            );
+            let provider = Arc::new(OpenAiCompatibleProvider {
+                id: "openai".to_string(),
+                api_key_env: cfg.providers.openai.api_key_env.clone(),
+                base_url: cfg.providers.openai.base_url.clone(),
+                default_model: cfg.providers.openai.default_model.clone(),
+                models,
+                app_title: "mew".to_string(),
+                app_url: "https://github.com/mew-agent/mew".to_string(),
+            });
 
             info.push(ProviderInfo {
                 id: "openai".to_string(),
                 name: "OpenAI / Codex".to_string(),
                 enabled: true,
+                authorized: provider.is_authorized(),
                 auth: format!("api-key env {}", cfg.providers.openai.api_key_env),
                 base_url: cfg.providers.openai.base_url.clone(),
                 default_model: cfg.providers.openai.default_model.clone(),
             });
+
+            providers.insert("openai".to_string(), provider);
         }
 
         if cfg.providers.openrouter.enabled {
             let models = convert_models("openrouter", &cfg.providers.openrouter.models);
-            providers.insert(
-                "openrouter".to_string(),
-                Arc::new(OpenAiCompatibleProvider {
-                    id: "openrouter".to_string(),
-                    api_key_env: cfg.providers.openrouter.api_key_env.clone(),
-                    base_url: cfg.providers.openrouter.base_url.clone(),
-                    default_model: cfg.providers.openrouter.default_model.clone(),
-                    models,
-                    app_title: "mew".to_string(),
-                    app_url: "https://github.com/mew-agent/mew".to_string(),
-                }),
-            );
+            let provider = Arc::new(OpenAiCompatibleProvider {
+                id: "openrouter".to_string(),
+                api_key_env: cfg.providers.openrouter.api_key_env.clone(),
+                base_url: cfg.providers.openrouter.base_url.clone(),
+                default_model: cfg.providers.openrouter.default_model.clone(),
+                models,
+                app_title: "mew".to_string(),
+                app_url: "https://github.com/mew-agent/mew".to_string(),
+            });
 
             info.push(ProviderInfo {
                 id: "openrouter".to_string(),
                 name: "OpenRouter".to_string(),
                 enabled: true,
+                authorized: provider.is_authorized(),
                 auth: format!("api-key env {}", cfg.providers.openrouter.api_key_env),
                 base_url: cfg.providers.openrouter.base_url.clone(),
                 default_model: cfg.providers.openrouter.default_model.clone(),
             });
+
+            providers.insert("openrouter".to_string(), provider);
         }
 
         if cfg.providers.gemini.enabled {
             let models = convert_models("gemini", &cfg.providers.gemini.models);
-            providers.insert(
-                "gemini".to_string(),
-                Arc::new(GeminiProvider {
-                    id: "gemini".to_string(),
-                    api_key_env: cfg.providers.gemini.api_key_env.clone(),
-                    base_url: cfg.providers.gemini.base_url.clone(),
-                    default_model: cfg.providers.gemini.default_model.clone(),
-                    models,
-                }),
-            );
+            let provider = Arc::new(GeminiProvider {
+                id: "gemini".to_string(),
+                api_key_env: cfg.providers.gemini.api_key_env.clone(),
+                base_url: cfg.providers.gemini.base_url.clone(),
+                default_model: cfg.providers.gemini.default_model.clone(),
+                models,
+            });
 
             info.push(ProviderInfo {
                 id: "gemini".to_string(),
                 name: "Gemini".to_string(),
                 enabled: true,
+                authorized: provider.is_authorized(),
                 auth: format!("api-key env {}", cfg.providers.gemini.api_key_env),
                 base_url: cfg.providers.gemini.base_url.clone(),
                 default_model: cfg.providers.gemini.default_model.clone(),
             });
+
+            providers.insert("gemini".to_string(), provider);
         }
 
         for (id, custom) in &cfg.providers.custom {
@@ -104,11 +102,31 @@ impl ProviderRegistry {
         self.info.clone()
     }
 
+    pub fn list_authorized_info(&self) -> Vec<ProviderInfo> {
+        self.info
+            .iter()
+            .filter(|p| p.authorized)
+            .cloned()
+            .collect::<Vec<_>>()
+    }
+
     pub fn list_models(&self) -> Vec<ProviderModel> {
         self.providers
             .values()
             .flat_map(|p| p.models())
             .collect::<Vec<_>>()
+    }
+
+    pub fn list_models_for(&self, provider: &str) -> Result<Vec<ProviderModel>> {
+        Ok(self.get(provider)?.models())
+    }
+
+    pub async fn list_remote_models_for(&self, provider: &str) -> Result<Vec<ProviderModel>> {
+        let p = self.get(provider)?;
+        if !p.is_authorized() {
+            return Err(anyhow!("provider {} is not authorized", provider));
+        }
+        p.list_remote_models().await
     }
 
     pub fn get(&self, id: &str) -> Result<Arc<dyn Provider>> {
@@ -155,25 +173,25 @@ fn add_custom_openai_compatible(
 ) {
     let models = convert_models(id, &custom.models);
 
-    providers.insert(
-        id.to_string(),
-        Arc::new(OpenAiCompatibleProvider {
-            id: id.to_string(),
-            api_key_env: custom.api_key_env.clone(),
-            base_url: custom.base_url.clone(),
-            default_model: custom.default_model.clone(),
-            models,
-            app_title: "mew".to_string(),
-            app_url: "https://github.com/mew-agent/mew".to_string(),
-        }),
-    );
+    let provider = Arc::new(OpenAiCompatibleProvider {
+        id: id.to_string(),
+        api_key_env: custom.api_key_env.clone(),
+        base_url: custom.base_url.clone(),
+        default_model: custom.default_model.clone(),
+        models,
+        app_title: "mew".to_string(),
+        app_url: "https://github.com/mew-agent/mew".to_string(),
+    });
 
     info.push(ProviderInfo {
         id: id.to_string(),
         name: id.to_string(),
         enabled: true,
+        authorized: provider.is_authorized(),
         auth: format!("api-key env {}", custom.api_key_env),
         base_url: custom.base_url.clone(),
         default_model: custom.default_model.clone(),
     });
+
+    providers.insert(id.to_string(), provider);
 }

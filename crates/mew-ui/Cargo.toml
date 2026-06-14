@@ -12,4 +12,5 @@ terminal_size.workspace = true
 textwrap.workspace = true
 unicode-width.workspace = true
 strip-ansi-escapes.workspace = true
+pulldown-cmark.workspace = true
 mew-common = { path = "../mew-common" }

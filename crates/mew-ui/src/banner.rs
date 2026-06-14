@@ -14,6 +14,87 @@ pub fn startup_banner(cfg: &MewConfig, project_status: &str) -> String {
     }
 }
 
+pub fn chat_banner(cfg: &MewConfig, model: &str, directory: &str) -> String {
+    let layout = TerminalLayout::detect();
+    let w = layout.card_width();
+    let inner = w - 4;
+
+    let title = format!(">_ {} agent", cfg.identity.display_name);
+    let model_line = format!("model:     {}   /model to change", model);
+    let dir_line = format!("directory: {}", directory);
+
+    vec![
+        format!("{}{}{}", "╭".bright_black(), line('─', w - 2), "╮".bright_black()),
+        format!(
+            "{} {} {}",
+            "│".bright_black(),
+            fit(&title, inner).bright_cyan(),
+            "│".bright_black()
+        ),
+        format!(
+            "{} {} {}",
+            "│".bright_black(),
+            fit("", inner),
+            "│".bright_black()
+        ),
+        format!(
+            "{} {} {}",
+            "│".bright_black(),
+            fit(&model_line, inner),
+            "│".bright_black()
+        ),
+        format!(
+            "{} {} {}",
+            "│".bright_black(),
+            fit(&dir_line, inner),
+            "│".bright_black()
+        ),
+        format!("{}{}{}", "╰".bright_black(), line('─', w - 2), "╯".bright_black()),
+    ]
+    .join("\n")
+}
+
+pub fn slash_menu() -> String {
+    let layout = TerminalLayout::detect();
+    let w = layout.card_width();
+    let inner = w - 4;
+
+    let rows = [
+        ("/model", "choose provider/model"),
+        ("/providers", "list authorized providers"),
+        ("/models", "list current provider models"),
+        ("/sessions", "list saved sessions"),
+        ("/clear", "clear terminal"),
+        ("/exit", "save and leave"),
+    ];
+
+    let mut out = String::new();
+    out.push_str(&format!(
+        "{}{}{}\n",
+        "╭─ ".bright_black(),
+        "commands".bright_magenta(),
+        format!(" {}", line('─', w.saturating_sub(12))).bright_black()
+    ));
+
+    for (cmd, desc) in rows {
+        out.push_str(&format!(
+            "{} {} {}\n",
+            "│".bright_black(),
+            fit(&format!("{:<12} {}", cmd, desc), inner),
+            "│".bright_black()
+        ));
+    }
+
+    out.push_str(&format!(
+        "{}{}{}",
+        "╰".bright_black(),
+        line('─', w - 2),
+        "╯".bright_black()
+    ));
+
+    out
+}
+
 fn tiny_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
     let w = layout.card_width();
     let inner = w - 4;
@@ -29,7 +110,7 @@ fn tiny_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) ->
         format!("{} {} {}", "│".bright_black(), fit(&name, inner).bright_cyan(), "│".bright_black()),
         format!("{} {} {}", "│".bright_black(), fit(tagline, inner), "│".bright_black()),
         format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(&kv_line("model", &cfg.providers.default, inner), inner), "│".bright_black()),
+        format!("{} {} {}", "│".bright_black(), fit(&kv_line("model", &cfg.providers.active_model, inner), inner), "│".bright_black()),
         format!("{} {} {}", "│".bright_black(), fit(&kv_line("project", project_status, inner), inner), "│".bright_black()),
         format!("{} {} {}", "│".bright_black(), fit(&kv_line("style", &cfg.style.theme, inner), inner), "│".bright_black()),
         format!("{}", "╰".bright_black()) + &line('─', w - 2) + &format!("{}", "╯".bright_black()),
@@ -53,7 +134,7 @@ fn narrow_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) 
         format!("{} {} {}", "│".bright_black(), center(&name, inner).bright_cyan(), "│".bright_black()),
         format!("{} {} {}", "│".bright_black(), center(tagline, inner), "│".bright_black()),
         format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(&kv_line("model", &cfg.providers.default, inner), inner), "│".bright_black()),
+        format!("{} {} {}", "│".bright_black(), fit(&kv_line("model", &cfg.providers.active_model, inner), inner), "│".bright_black()),
         format!("{} {} {}", "│".bright_black(), fit(&kv_line("project", project_status, inner), inner), "│".bright_black()),
         format!("{} {} {}", "│".bright_black(), fit(&kv_line("style", &cfg.style.theme, inner), inner), "│".bright_black()),
         format!("{}", "╰".bright_black()) + &line('─', w - 2) + &format!("{}", "╯".bright_black()),
@@ -96,7 +177,7 @@ fn normal_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) 
         format!(
             "{} {}  {} {}",
             "│".bright_black(),
-            fit(&kv_line("model", &cfg.providers.default, left), left),
+            fit(&kv_line("model", &cfg.providers.active_model, left), left),
             fit(&kv_line("project", project_status, right), right),
             "│".bright_black()
         ),
@@ -154,7 +235,7 @@ fn wide_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) ->
         format!(
             "{} {}  {} {}",
             "│".bright_black(),
-            fit(&kv_line("model", &cfg.providers.default, left), left),
+            fit(&kv_line("model", &cfg.providers.active_model, left), left),
             fit(&kv_line("project", project_status, right), right),
             "│".bright_black()
         ),

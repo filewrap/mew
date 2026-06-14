@@ -98,7 +98,13 @@ pub struct ModelCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum ModelSubcommand {
-    List,
+    List {
+        provider: Option<String>,
+        #[arg(long)]
+        remote: bool,
+        #[arg(long)]
+        all: bool,
+    },
     Use { model: String },
     Show,
 }

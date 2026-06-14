@@ -27,12 +27,51 @@ impl Provider for GeminiProvider {
         &self.id
     }
 
+    fn api_key_env(&self) -> &str {
+        &self.api_key_env
+    }
+
     fn default_model(&self) -> &str {
         &self.default_model
     }
 
     fn models(&self) -> Vec<ProviderModel> {
         self.models.clone()
+    }
+
+    async fn list_remote_models(&self) -> Result<Vec<ProviderModel>> {
+        let api_key = self.api_key()?;
+        let url = format!("{}/models?key={}", self.base_url.trim_end_matches('/'), api_key);
+
+        let res = Client::new().get(url).send().await?;
+
+        if !res.status().is_success() {
+            let status = res.status();
+            let text = res.text().await.unwrap_or_default();
+            return Err(anyhow!("gemini models error {}: {}", status, text));
+        }
+
+        let parsed: GeminiModelsResponse = res.json().await?;
+        let mut out = parsed
+            .models
+            .into_iter()
+            .filter(|m| {
+                m.supported_generation_methods
+                    .iter()
+                    .any(|x| x == "generateContent")
+            })
+            .map(|m| ProviderModel {
+                provider: self.id.clone(),
+                id: m.name.trim_start_matches("models/").to_string(),
+                context: m.input_token_limit.unwrap_or(0),
+                supports_tools: false,
+                supports_vision: true,
+                notes: "remote model".to_string(),
+            })
+            .collect::<Vec<_>>();
+
+        out.sort_by(|a, b| a.id.cmp(&b.id));
+        Ok(out)
     }
 
     async fn test(&self) -> Result<()> {
@@ -95,6 +134,18 @@ impl Provider for GeminiProvider {
             output_tokens: None,
         })
     }
+
+    async fn chat_stream(
+        &self,
+        req: ChatRequest,
+        on_delta: &mut (dyn FnMut(&str) + Send),
+    ) -> Result<ChatResponse> {
+        let res = self.chat(req).await?;
+        for chunk in res.text.split_inclusive(['.', '\n']) {
+            on_delta(chunk);
+        }
+        Ok(res)
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -131,4 +182,18 @@ struct GeminiResponse {
 #[derive(Debug, Deserialize)]
 struct GeminiCandidate {
     content: GeminiContent,
+}
+
+#[derive(Debug, Deserialize)]
+struct GeminiModelsResponse {
+    models: Vec<GeminiModelItem>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GeminiModelItem {
+    name: String,
+    #[serde(default)]
+    supported_generation_methods: Vec<String>,
+    #[serde(rename = "inputTokenLimit")]
+    input_token_limit: Option<usize>,
 }

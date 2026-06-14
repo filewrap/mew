@@ -40,6 +40,7 @@ pub struct ProviderInfo {
     pub id: String,
     pub name: String,
     pub enabled: bool,
+    pub authorized: bool,
     pub auth: String,
     pub base_url: String,
     pub default_model: String,
@@ -48,9 +49,32 @@ pub struct ProviderInfo {
 #[async_trait]
 pub trait Provider: Send + Sync {
     fn id(&self) -> &str;
+    fn api_key_env(&self) -> &str;
     fn default_model(&self) -> &str;
     fn models(&self) -> Vec<ProviderModel>;
+
+    fn is_authorized(&self) -> bool {
+        std::env::var(self.api_key_env())
+            .map(|v| !v.trim().is_empty())
+            .unwrap_or(false)
+    }
+
+    async fn list_remote_models(&self) -> Result<Vec<ProviderModel>> {
+        Ok(self.models())
+    }
+
     async fn chat(&self, req: ChatRequest) -> Result<ChatResponse>;
+
+    async fn chat_stream(
+        &self,
+        req: ChatRequest,
+        on_delta: &mut (dyn FnMut(&str) + Send),
+    ) -> Result<ChatResponse> {
+        let res = self.chat(req).await?;
+        on_delta(&res.text);
+        Ok(res)
+    }
+
     async fn test(&self) -> Result<()>;
 }
 

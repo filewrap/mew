@@ -59,25 +59,57 @@ MEW_REPO_URL=https://github.com/mahesh953-hub/mew bash scripts/install.sh
 cargo install --git https://github.com/mahesh953-hub/mew --package mew-cli --force
 ```
 
+
+
 ## Providers
+
+Key-based auth for now.
 
 ```bash
 export OPENAI_API_KEY="..."
 export OPENROUTER_API_KEY="..."
 export GEMINI_API_KEY="..."
+```
 
+```bash
 mew provider list
 mew provider test openai
 mew provider test openrouter
 mew provider test gemini
+```
 
+## Models
+
+Only authorized providers are shown by default.
+
+```bash
 mew model list
+mew model list --all
+mew model list openai
+mew model list openrouter
+mew model list gemini
+mew model list openrouter --remote
 mew model use openai/codex-mini-latest
-mew model use openrouter/qwen/qwen-2.5-coder-32b-instruct
-mew model use gemini/gemini-2.5-flash
+mew model show
+```
 
+## Ask / Chat
+
+```bash
 mew ask "hello"
 mew chat
+```
+
+Inside chat:
+
+```txt
+/
+ /model
+ /providers
+ /models
+ /sessions
+ /clear
+ /exit
 ```
 
 ## Sessions
@@ -85,4 +117,18 @@ mew chat
 ```bash
 mew session list
 mew session show <id>
+```
+
+## Install
+
+### Termux / Linux smart installer
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mahesh953-hub/mew/main/scripts/install.sh | bash
+```
+
+### Cargo
+
+```bash
+cargo install --git https://github.com/mahesh953-hub/mew --package mew-cli --force
 ```

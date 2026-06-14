@@ -17,6 +17,7 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: ProviderCommand) ->
                         &[
                             ("name", p.name),
                             ("enabled", p.enabled.to_string()),
+                            ("authorized", p.authorized.to_string()),
                             ("auth", p.auth),
                             ("base", p.base_url),
                             ("default", p.default_model),

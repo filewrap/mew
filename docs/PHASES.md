@@ -55,7 +55,7 @@ Status: done
 
 ## Phase 2 — Provider Brain v0
 
-Status: in progress
+Status: done
 
 - [x] create `mew-provider`
 - [x] create `mew-session`
@@ -64,33 +64,49 @@ Status: in progress
 - [x] OpenAI/Codex preset
 - [x] OpenRouter preset
 - [x] Gemini provider
-- [x] config env key loading
+- [x] key-based config/env auth
 - [x] default model config
 - [x] per-provider models
+- [x] list authorized provider models by default
+- [x] list specific provider models
+- [x] remote model listing for authorized providers
 - [x] active model setting
 - [x] custom OpenAI-compatible provider config
 - [x] async session save/load/list
 - [x] `mew provider list`
 - [x] `mew provider test`
 - [x] `mew model list`
+- [x] `mew model list <provider>`
+- [x] `mew model list <provider> --remote`
+- [x] `mew model list --all`
 - [x] `mew model use`
 - [x] `mew model show`
 - [x] `mew ask`
 - [x] `mew chat`
+- [x] slash menu in chat
+- [x] streaming renderer for OpenAI-compatible providers
+- [x] Gemini fallback stream renderer
+- [x] rich markdown rendering
+- [x] chat banner
+- [x] reduced output flood with blocks/status lines
 - [x] `mew session list`
 - [x] `mew session show`
 - [x] Termux-friendly install script
-- [ ] streaming renderer
-- [ ] OAuth placeholder commands
-- [ ] provider remove/update commands
-- [ ] interactive provider add wizard
-- [ ] better model metadata command
-- [ ] retry/backoff
-- [ ] network timeout config
+- [x] local check script
+
+## Phase 2 Learnings
+
+- [x] only key-based auth for now
+- [x] model listing must help low-budget users find available small models
+- [x] authorized providers should be prioritized
+- [x] terminal output needs stops, blocks, slash menu, status lines
+- [x] streaming makes mew feel alive
+- [x] markdown must be handled before serious agent phases
+- [x] first impression is provider + appearance together
 
 ## Phase 3 — Project Init + Context Sniffer
 
-Status: queued
+Status: next
 
 - [ ] create `mew-index`
 - [ ] full `mew init`
