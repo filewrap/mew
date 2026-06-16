@@ -23,3 +23,4 @@ tokio.workspace = true
 rpassword.workspace = true
 mew-provider = { path = "../mew-provider" }
 mew-session = { path = "../mew-session" }
+ctrlc.workspace = true

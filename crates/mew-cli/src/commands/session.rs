@@ -1,11 +1,11 @@
 use anyhow::Result;
-use mew_common::MewPaths;
+use mew_common::{MewConfig, MewPaths};
 use mew_session::{list_sessions, load_session};
 use mew_ui::kv_table;
 
 use crate::args::{SessionCommand, SessionSubcommand};
 
-pub async fn run(paths: &MewPaths, cmd: SessionCommand) -> Result<()> {
+pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: SessionCommand) -> Result<()> {
     match cmd.command {
         SessionSubcommand::List => {
             let sessions = list_sessions(paths).await?;
@@ -57,6 +57,9 @@ pub async fn run(paths: &MewPaths, cmd: SessionCommand) -> Result<()> {
                 println!("{}", msg.content);
                 println!();
             }
+        }
+        SessionSubcommand::Resume { id } => {
+            crate::commands::chat::resume(paths, cfg, id).await?;
         }
     }
 

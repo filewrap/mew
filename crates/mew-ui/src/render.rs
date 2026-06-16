@@ -210,3 +210,7 @@ pub fn user_line(text: &str) -> String {
 pub fn status_line(text: &str) -> String {
     format!("{} {}", "•".bright_cyan(), text.bright_black())
 }
+
+pub fn meta_line(text: &str) -> String {
+    format!("{}", text.bright_black())
+}

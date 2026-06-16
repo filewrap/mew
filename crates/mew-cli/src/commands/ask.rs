@@ -2,8 +2,13 @@ use anyhow::Result;
 use mew_common::{MewConfig, MewPaths};
 use mew_provider::{system_message, user_message, ChatRequest, ProviderRegistry};
 use mew_session::{save_session, MewSession};
-use mew_ui::{assistant_bubble, phrase, render_markdown_light, status_line};
+use mew_ui::{meta_line, phrase, status_line};
 use std::io::{self, Write};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::time::Instant;
 
 pub async fn run(
     paths: &MewPaths,
@@ -16,15 +21,17 @@ pub async fn run(
     let reg = ProviderRegistry::from_config(cfg);
     let provider = reg.get(&provider_id)?;
 
-    println!("{}", status_line(phrase("connecting")));
+    let cancelled = install_cancel_flag();
 
     let messages = vec![
         system_message("You are mew, a concise CLI-first AI coding agent. Be useful, direct, cute, and token-efficient. Use markdown when helpful."),
         user_message(prompt.clone()),
     ];
 
-    print!("{} ", "•".to_string());
-    io::stdout().flush()?;
+    println!("{}", status_line(phrase("connecting")));
+
+    let start = Instant::now();
+    let spinner = start_spinner("meowiinnggg~");
 
     let mut streamed = String::new();
 
@@ -37,6 +44,7 @@ pub async fn run(
                 max_tokens: None,
             },
             &mut |delta: String| {
+                spinner.store(false, Ordering::SeqCst);
                 streamed.push_str(&delta);
                 print!("{}", delta);
                 let _ = io::stdout().flush();
@@ -44,32 +52,77 @@ pub async fn run(
         )
         .await?;
 
+    spinner.store(false, Ordering::SeqCst);
     println!();
     println!();
 
-    if streamed.trim().is_empty() {
-        println!(
-            "{}",
-            assistant_bubble(&cfg.identity.display_name, &render_markdown_light(&res.text))
-        );
+    if cancelled.load(Ordering::SeqCst) {
+        println!("{}", status_line("cancelled"));
+        return Ok(());
     }
 
-    let mut session = MewSession::new(prompt, provider_id, model_id);
+    let elapsed = start.elapsed();
+
+    let mut session = MewSession::new(prompt, provider_id.clone(), model_id.clone());
     for msg in messages {
         session.push(msg);
     }
     session.push(mew_provider::ChatMessage {
         role: "assistant".to_string(),
-        content: res.text,
+        content: res.text.clone(),
     });
 
     save_session(paths, &session).await?;
 
-    println!();
     println!(
         "{}",
-        status_line(&format!("session saved: {}", session.id))
+        meta_line(&format!(
+            "time={}ms model={}/{} tokens=in:{} out:{} session={}",
+            elapsed.as_millis(),
+            provider_id,
+            model_id,
+            res.input_tokens
+                .map(|x| x.to_string())
+                .unwrap_or_else(|| "?".to_string()),
+            res.output_tokens
+                .map(|x| x.to_string())
+                .unwrap_or_else(|| "?".to_string()),
+            session.id
+        ))
     );
 
     Ok(())
+}
+
+fn install_cancel_flag() -> Arc<AtomicBool> {
+    let flag = Arc::new(AtomicBool::new(false));
+    let f = flag.clone();
+
+    let _ = ctrlc::set_handler(move || {
+        f.store(true, Ordering::SeqCst);
+    });
+
+    flag
+}
+
+fn start_spinner(text: &'static str) -> Arc<AtomicBool> {
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+
+    std::thread::spawn(move || {
+        let frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+        let mut i = 0usize;
+
+        while r.load(Ordering::SeqCst) {
+            eprint!("\r{} {}", frames[i % frames.len()], text);
+            let _ = io::stderr().flush();
+            i += 1;
+            std::thread::sleep(std::time::Duration::from_millis(80));
+        }
+
+        eprint!("\r{}\r", " ".repeat(48));
+        let _ = io::stderr().flush();
+    });
+
+    running
 }

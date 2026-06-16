@@ -20,7 +20,7 @@ pub fn chat_banner(cfg: &MewConfig, model: &str, directory: &str) -> String {
     let inner = w - 4;
 
     let title = format!(">_ {} agent", cfg.identity.display_name);
-    let model_line = format!("model:     {}   /model to change", model);
+    let model_line = format!("model:     {}   /model", model);
     let dir_line = format!("directory: {}", directory);
 
     vec![
@@ -60,10 +60,11 @@ pub fn slash_menu() -> String {
     let inner = w - 4;
 
     let rows = [
-        ("/model", "choose provider/model"),
-        ("/providers", "list authorized providers"),
-        ("/models", "list current provider models"),
-        ("/sessions", "list saved sessions"),
+        ("/model", "show current model"),
+        ("/providers", "list providers"),
+        ("/models", "list models for current provider"),
+        ("/remote-models", "fetch models from current provider"),
+        ("/sessions", "list recent sessions"),
         ("/clear", "clear terminal"),
         ("/exit", "save and leave"),
     ];
@@ -80,7 +81,7 @@ pub fn slash_menu() -> String {
         out.push_str(&format!(
             "{} {} {}\n",
             "│".bright_black(),
-            fit(&format!("{:<12} {}", cmd, desc), inner),
+            fit(&format!("{:<15} {}", cmd, desc), inner),
             "│".bright_black()
         ));
     }
@@ -112,7 +113,6 @@ fn tiny_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) ->
         format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
         format!("{} {} {}", "│".bright_black(), fit(&kv_line("model", &cfg.providers.active_model, inner), inner), "│".bright_black()),
         format!("{} {} {}", "│".bright_black(), fit(&kv_line("project", project_status, inner), inner), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(&kv_line("style", &cfg.style.theme, inner), inner), "│".bright_black()),
         format!("{}", "╰".bright_black()) + &line('─', w - 2) + &format!("{}", "╯".bright_black()),
     ]
     .join("\n")
@@ -136,7 +136,6 @@ fn narrow_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) 
         format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
         format!("{} {} {}", "│".bright_black(), fit(&kv_line("model", &cfg.providers.active_model, inner), inner), "│".bright_black()),
         format!("{} {} {}", "│".bright_black(), fit(&kv_line("project", project_status, inner), inner), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(&kv_line("style", &cfg.style.theme, inner), inner), "│".bright_black()),
         format!("{}", "╰".bright_black()) + &line('─', w - 2) + &format!("{}", "╯".bright_black()),
     ]
     .join("\n")
@@ -145,7 +144,7 @@ fn narrow_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) 
 fn normal_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
     let w = layout.card_width();
     let inner = w - 4;
-    let left = 23;
+    let left = 26;
     let right = inner - left - 2;
     let name = format!("{} agent", cfg.identity.display_name);
     let tagline = phrase("startup");
@@ -155,22 +154,22 @@ fn normal_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) 
         format!(
             "{} {}  {} {}",
             "│".bright_black(),
-            fit("     /\\_/\\\\", left).bright_magenta(),
+            fit("        *      /\\_/\\\\", left).bright_magenta(),
             fit(&name, right).bright_cyan(),
             "│".bright_black()
         ),
         format!(
             "{} {}  {} {}",
             "│".bright_black(),
-            fit("    ( o.o )", left).bright_magenta(),
+            fit("   *          ( o.o )", left).bright_magenta(),
             fit(tagline, right),
             "│".bright_black()
         ),
         format!(
             "{} {}  {} {}",
             "│".bright_black(),
-            fit("     > ^ <", left).bright_magenta(),
-            fit("CLI-first · safe · fast", right).bright_black(),
+            fit("        ░░░    > ^ <", left).bright_magenta(),
+            fit("cute shell · sharp claws", right).bright_black(),
             "│".bright_black()
         ),
         format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
@@ -185,7 +184,7 @@ fn normal_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) 
             "{} {}  {} {}",
             "│".bright_black(),
             fit(&kv_line("style", &cfg.style.theme, left), left),
-            fit(&kv_line("guard", "awake", right), right),
+            fit(&kv_line("exit", "/exit or ctrl+c", right), right),
             "│".bright_black()
         ),
         format!("{}", "╰".bright_black()) + &line('─', w - 2) + &format!("{}", "╯".bright_black()),
@@ -196,7 +195,7 @@ fn normal_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) 
 fn wide_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
     let w = layout.card_width();
     let inner = w - 4;
-    let left = 30;
+    let left = 34;
     let right = inner - left - 2;
     let name = format!("{} agent", cfg.identity.display_name);
     let tagline = phrase("startup");
@@ -206,28 +205,28 @@ fn wide_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) ->
         format!(
             "{} {}  {} {}",
             "│".bright_black(),
-            fit("        ╱|、", left).bright_magenta(),
+            fit("   *              ╱|、", left).bright_magenta(),
             fit(&name, right).bright_cyan(),
             "│".bright_black()
         ),
         format!(
             "{} {}  {} {}",
             "│".bright_black(),
-            fit("      (˚ˎ 。7", left).bright_magenta(),
+            fit("        ░░░     (˚ˎ 。7", left).bright_magenta(),
             fit(tagline, right),
             "│".bright_black()
         ),
         format!(
             "{} {}  {} {}",
             "│".bright_black(),
-            fit("       |、˜〵", left).bright_magenta(),
+            fit("    ░░░░░░░░      |、˜〵", left).bright_magenta(),
             fit("CLI-first · token-smart · guard-protected", right).bright_black(),
             "│".bright_black()
         ),
         format!(
             "{} {}  {} {}",
             "│".bright_black(),
-            fit("       じしˍ,)ノ", left).bright_magenta(),
+            fit("  ░░░░░░░░░░░░    じしˍ,)ノ", left).bright_magenta(),
             fit("from Termux caves to x86 castles", right).bright_black(),
             "│".bright_black()
         ),
@@ -243,7 +242,7 @@ fn wide_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) ->
             "{} {}  {} {}",
             "│".bright_black(),
             fit(&kv_line("style", &cfg.style.theme, left), left),
-            fit(&kv_line("guard", "awake", right), right),
+            fit(&kv_line("exit", "/exit or ctrl+c", right), right),
             "│".bright_black()
         ),
         format!("{}", "╰".bright_black()) + &line('─', w - 2) + &format!("{}", "╯".bright_black()),

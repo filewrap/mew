@@ -96,6 +96,8 @@ mew model show
 ## Ask / Chat
 
 ```bash
+mew
+mew
 mew ask "hello"
 mew chat
 ```
@@ -117,6 +119,7 @@ Inside chat:
 ```bash
 mew session list
 mew session show <id>
+mew session resume <id>
 ```
 
 ## Install

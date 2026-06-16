@@ -93,6 +93,15 @@ Status: done
 - [x] `mew session show`
 - [x] Termux-friendly install script
 - [x] local check script
+- [x] default `mew` enters endless chat loop
+- [x] `/exit` saves and leaves session
+- [x] ctrl+c saves and leaves session on next prompt
+- [x] `mew session resume <id>`
+- [x] compact model table: index/name/id
+- [x] remote model list is clean table only
+- [x] cute loading animation before/during calls
+- [x] response footer with time/model/tokens/session
+- [x] improved banner with more Claude/Crush-like visual feel
 
 ## Phase 2 Learnings
 
@@ -103,6 +112,10 @@ Status: done
 - [x] streaming makes mew feel alive
 - [x] markdown must be handled before serious agent phases
 - [x] first impression is provider + appearance together
+- [x] default command should not print and exit
+- [x] session resume is required before agent phase
+- [x] model listing must be compact, not flood output
+- [x] every model call should show progress and usage footer
 
 ## Phase 3 — Project Init + Context Sniffer
 

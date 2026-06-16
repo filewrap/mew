@@ -5,7 +5,6 @@ use anyhow::Result;
 use args::{Cli, Commands};
 use clap::Parser;
 use mew_common::{MewConfig, MewPaths};
-use mew_ui::{clear_screen, hint_card, startup_banner};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -27,22 +26,12 @@ async fn main() -> Result<()> {
         Some(Commands::Config(cmd)) => commands::config::run(&paths, &cfg, cmd)?,
         Some(Commands::Provider(cmd)) => commands::provider::run(&paths, &mut cfg, cmd).await?,
         Some(Commands::Model(cmd)) => commands::model::run(&paths, &mut cfg, cmd).await?,
-        Some(Commands::Ask { prompt, model }) => commands::ask::run(&paths, &mut cfg, prompt, model).await?,
-        Some(Commands::Chat { model }) => commands::chat::run(&paths, &mut cfg, model).await?,
-        Some(Commands::Session(cmd)) => commands::session::run(&paths, cmd).await?,
-        None => {
-            clear_screen();
-            println!("{}", startup_banner(&cfg, "not initialized"));
-            println!();
-            println!(
-                "{}",
-                hint_card(&[
-                    "ask: mew ask \"what does this repo do?\"",
-                    "provider: mew provider list",
-                    "model: mew model list",
-                ])
-            );
+        Some(Commands::Ask { prompt, model }) => {
+            commands::ask::run(&paths, &mut cfg, prompt, model).await?
         }
+        Some(Commands::Chat { model }) => commands::chat::run(&paths, &mut cfg, model).await?,
+        Some(Commands::Session(cmd)) => commands::session::run(&paths, &mut cfg, cmd).await?,
+        None => commands::chat::run(&paths, &mut cfg, None).await?,
     }
 
     Ok(())

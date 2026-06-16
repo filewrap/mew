@@ -1,7 +1,7 @@
 use anyhow::Result;
+use comfy_table::{presets::UTF8_FULL, Cell, Table};
 use mew_common::{MewConfig, MewPaths};
 use mew_provider::{ProviderModel, ProviderRegistry};
-use mew_ui::kv_table;
 
 use crate::args::{ModelCommand, ModelSubcommand};
 
@@ -24,9 +24,8 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: ModelCommand) -> Re
                 let mut out = Vec::new();
 
                 for p in reg.list_authorized_info() {
-                    match reg.list_remote_models_for(&p.id).await {
-                        Ok(mut models) => out.append(&mut models),
-                        Err(err) => eprintln!("skip {}: {}", p.id, err),
+                    if let Ok(mut models) = reg.list_remote_models_for(&p.id).await {
+                        out.append(&mut models);
                     }
                 }
 
@@ -46,17 +45,6 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: ModelCommand) -> Re
                 out
             };
 
-            if models.is_empty() {
-                println!("no authorized provider models found");
-                println!("try:");
-                println!("  export OPENAI_API_KEY='...'");
-                println!("  export OPENROUTER_API_KEY='...'");
-                println!("  export GEMINI_API_KEY='...'");
-                println!("  mew model list --all");
-                println!("  mew model list openrouter --remote");
-                return Ok(());
-            }
-
             print_models(models);
         }
         ModelSubcommand::Use { model } => {
@@ -74,26 +62,30 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: ModelCommand) -> Re
 }
 
 fn print_models(models: Vec<ProviderModel>) {
-    for m in models {
-        println!(
-            "{}",
-            kv_table(
-                &format!("{}/{}", m.provider, m.id),
-                &[
-                    (
-                        "context",
-                        if m.context == 0 {
-                            "unknown".to_string()
-                        } else {
-                            m.context.to_string()
-                        },
-                    ),
-                    ("tools", m.supports_tools.to_string()),
-                    ("vision", m.supports_vision.to_string()),
-                    ("notes", m.notes),
-                ],
-            )
-        );
-        println!();
+    if models.is_empty() {
+        println!("no models");
+        return;
     }
+
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL);
+    table.set_header(vec![
+        Cell::new("#"),
+        Cell::new("name"),
+        Cell::new("id"),
+    ]);
+
+    for (idx, m) in models.iter().enumerate() {
+        table.add_row(vec![
+            Cell::new((idx + 1).to_string()),
+            Cell::new(short_name(&m.id)),
+            Cell::new(format!("{}/{}", m.provider, m.id)),
+        ]);
+    }
+
+    println!("{}", table);
+}
+
+fn short_name(id: &str) -> String {
+    id.rsplit('/').next().unwrap_or(id).to_string()
 }

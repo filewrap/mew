@@ -64,7 +64,12 @@ impl Provider for OpenAiCompatibleProvider {
         if !res.status().is_success() {
             let status = res.status();
             let text = res.text().await.unwrap_or_default();
-            return Err(anyhow!("provider {} models error {}: {}", self.id, status, text));
+            return Err(anyhow!(
+                "provider {} models error {}: {}",
+                self.id,
+                status,
+                text
+            ));
         }
 
         let parsed: OpenAiModelsResponse = res.json().await?;

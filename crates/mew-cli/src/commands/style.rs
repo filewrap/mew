@@ -38,7 +38,10 @@ pub fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: StyleCommand) -> Result<(
             );
 
             println!();
-            println!("{}", hint_card(&["mew style set claude-minimal", "mew name set paww"]));
+            println!(
+                "{}",
+                hint_card(&["mew style set claude-minimal", "mew name set paww"])
+            );
             println!();
             println!("{}", tool_card("fs.read", "src/main.rs", "safe"));
             println!();
@@ -49,7 +52,10 @@ pub fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: StyleCommand) -> Result<(
             println!("{}", phrase("council"));
 
             println!();
-            println!("{}", code_block("rust", "fn main() {\n    println!(\"mew~\");\n}"));
+            println!(
+                "{}",
+                code_block("rust", "fn main() {\n    println!(\"mew~\");\n}")
+            );
             println!();
             println!("{}", diff_sample());
         }

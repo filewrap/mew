@@ -41,7 +41,11 @@ impl Provider for GeminiProvider {
 
     async fn list_remote_models(&self) -> Result<Vec<ProviderModel>> {
         let api_key = self.api_key()?;
-        let url = format!("{}/models?key={}", self.base_url.trim_end_matches('/'), api_key);
+        let url = format!(
+            "{}/models?key={}",
+            self.base_url.trim_end_matches('/'),
+            api_key
+        );
 
         let res = Client::new().get(url).send().await?;
 

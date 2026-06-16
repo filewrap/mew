@@ -81,7 +81,9 @@ pub struct ProviderCommand {
 #[derive(Debug, Subcommand)]
 pub enum ProviderSubcommand {
     List,
-    Test { provider: String },
+    Test {
+        provider: String,
+    },
     AddOpenai {
         id: String,
         base_url: String,
@@ -105,7 +107,9 @@ pub enum ModelSubcommand {
         #[arg(long)]
         all: bool,
     },
-    Use { model: String },
+    Use {
+        model: String,
+    },
     Show,
 }
 
@@ -119,4 +123,5 @@ pub struct SessionCommand {
 pub enum SessionSubcommand {
     List,
     Show { id: String },
+    Resume { id: String },
 }
