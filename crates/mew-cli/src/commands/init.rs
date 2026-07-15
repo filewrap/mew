@@ -41,7 +41,11 @@ pub fn run(_paths: &MewPaths, _cfg: &MewConfig, dry_run: bool) -> Result<()> {
             ),
         )?;
 
-        fs::write(mew_dir.join("memory.md"), "# mew memory\n\n")?;
+        let memory_path = mew_dir.join("memory.md");
+        if !memory_path.exists() {
+            fs::write(memory_path, "# mew memory\n\n")?;
+        }
+
         fs::write(
             mew_dir.join("repo-map.md"),
             format!(

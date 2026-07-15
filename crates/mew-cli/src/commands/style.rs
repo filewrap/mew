@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use mew_common::{MewConfig, MewPaths};
 use mew_ui::{
-    code_block, diff_sample, hint_card, kv_table, phrase, spinner_frame, theme_exists, tool_card,
-    THEMES,
+    code_block, diff_sample, hint_card, kv_table, phrase, spinner_frame, theme_by_name,
+    theme_exists, tool_card, THEMES,
 };
 
 use crate::args::{StyleCommand, StyleSubcommand};
@@ -24,6 +24,8 @@ pub fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: StyleCommand) -> Result<(
             println!("saved");
         }
         StyleSubcommand::Preview => {
+            let theme = theme_by_name(&cfg.style.theme);
+
             println!(
                 "{}",
                 kv_table(
@@ -40,12 +42,14 @@ pub fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: StyleCommand) -> Result<(
             println!();
             println!(
                 "{}",
-                hint_card(&["mew style set claude-minimal", "mew name set paww"])
+                hint_card(&theme, &["mew style set claude-minimal", "mew name set paww"])
             );
             println!();
-            println!("{}", tool_card("fs.read", "src/main.rs", "safe"));
-            println!();
 
+            let card = tool_card(&theme, "fs.read", "src/main.rs", "safe");
+            println!("{}", card);
+
+            println!();
             let spin = spinner_frame(3, "thinking");
             println!("{} {}", spin.frame, spin.text);
             println!("{}", phrase("token"));
@@ -54,10 +58,10 @@ pub fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: StyleCommand) -> Result<(
             println!();
             println!(
                 "{}",
-                code_block("rust", "fn main() {\n    println!(\"mew~\");\n}")
+                code_block(&theme, "rust", "fn main() {\n    println!(\"mew~\");\n}")
             );
             println!();
-            println!("{}", diff_sample());
+            println!("{}", diff_sample(&theme));
         }
     }
 

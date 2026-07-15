@@ -223,9 +223,18 @@ impl MewConfig {
         }
 
         let raw = fs::read_to_string(&paths.config_file)?;
-        let cfg: Self = toml::from_str(&raw).unwrap_or_else(|_| Self::default());
-        cfg.save(paths)?;
-        Ok(cfg)
+        match toml::from_str::<Self>(&raw) {
+            Ok(cfg) => Ok(cfg),
+            Err(e) => {
+                eprintln!(
+                    "mew: warning: could not parse config ({}); using defaults for this run. \
+                     Fix or delete {}",
+                    e,
+                    paths.config_file.display()
+                );
+                Ok(Self::default())
+            }
+        }
     }
 
     pub fn save(&self, paths: &MewPaths) -> Result<()> {

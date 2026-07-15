@@ -25,7 +25,7 @@ impl ProviderRegistry {
                 default_model: cfg.providers.openai.default_model.clone(),
                 models,
                 app_title: "mew".to_string(),
-                app_url: "https://github.com/mew-agent/mew".to_string(),
+                app_url: "https://github.com/mahesh953-hub/mew".to_string(),
             });
 
             info.push(ProviderInfo {
@@ -50,7 +50,7 @@ impl ProviderRegistry {
                 default_model: cfg.providers.openrouter.default_model.clone(),
                 models,
                 app_title: "mew".to_string(),
-                app_url: "https://github.com/mew-agent/mew".to_string(),
+                app_url: "https://github.com/mahesh953-hub/mew".to_string(),
             });
 
             info.push(ProviderInfo {
@@ -180,7 +180,7 @@ fn add_custom_openai_compatible(
         default_model: custom.default_model.clone(),
         models,
         app_title: "mew".to_string(),
-        app_url: "https://github.com/mew-agent/mew".to_string(),
+        app_url: "https://github.com/mahesh953-hub/mew".to_string(),
     });
 
     info.push(ProviderInfo {

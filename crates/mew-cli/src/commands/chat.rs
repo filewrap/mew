@@ -2,7 +2,10 @@ use anyhow::Result;
 use mew_common::{MewConfig, MewPaths};
 use mew_provider::{system_message, user_message, ChatMessage, ChatRequest, ProviderRegistry};
 use mew_session::{list_sessions, save_session, MewSession};
-use mew_ui::{chat_banner, clear_screen, meta_line, slash_menu, status_line, user_line};
+use mew_ui::{
+    chat_banner, clear_screen, meta_line, slash_menu, startup_banner, status_line, user_line,
+    theme_by_name, Theme,
+};
 use std::io::{self, Write};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -15,6 +18,7 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, model: Option<String>) -
     let (provider_id, model_id) = ProviderRegistry::parse_model_ref(&model_ref)?;
     let reg = ProviderRegistry::from_config(cfg);
     let provider = reg.get(&provider_id)?;
+    let theme = theme_by_name(&cfg.style.theme);
 
     let cancelled = install_cancel_flag();
 
@@ -23,9 +27,11 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, model: Option<String>) -
         .unwrap_or_else(|_| "~".to_string());
 
     clear_screen();
-    println!("{}", chat_banner(cfg, &model_ref, &cwd));
+    println!("{}", startup_banner(&theme, cfg, "ready"));
     println!();
-    println!("{}", status_line("type / for commands · /exit to leave"));
+    println!("{}", chat_banner(&theme, cfg, &model_ref, &cwd));
+    println!();
+    println!("{}", status_line(&theme, "type / for commands · /exit to leave"));
     println!();
 
     let mut session = MewSession::new("chat", provider_id.clone(), model_id.clone());
@@ -41,6 +47,7 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, model: Option<String>) -
         &model_id,
         provider,
         &mut session,
+        &theme,
         cancelled,
     )
     .await
@@ -54,6 +61,7 @@ pub async fn resume(paths: &MewPaths, cfg: &mut MewConfig, id: String) -> Result
 
     let reg = ProviderRegistry::from_config(cfg);
     let provider = reg.get(&provider_id)?;
+    let theme = theme_by_name(&cfg.style.theme);
     let cancelled = install_cancel_flag();
 
     let cwd = std::env::current_dir()
@@ -61,10 +69,10 @@ pub async fn resume(paths: &MewPaths, cfg: &mut MewConfig, id: String) -> Result
         .unwrap_or_else(|_| "~".to_string());
 
     clear_screen();
-    println!("{}", chat_banner(cfg, &model_ref, &cwd));
+    println!("{}", chat_banner(&theme, cfg, &model_ref, &cwd));
     println!();
-    println!("{}", status_line(&format!("resumed session {}", id)));
-    println!("{}", status_line("type / for commands · /exit to leave"));
+    println!("{}", status_line(&theme, &format!("resumed session {}", id)));
+    println!("{}", status_line(&theme, "type / for commands · /exit to leave"));
     println!();
 
     chat_loop(
@@ -74,6 +82,7 @@ pub async fn resume(paths: &MewPaths, cfg: &mut MewConfig, id: String) -> Result
         &model_id,
         provider,
         &mut session,
+        &theme,
         cancelled,
     )
     .await
@@ -86,13 +95,14 @@ async fn chat_loop(
     model_id: &str,
     provider: std::sync::Arc<dyn mew_provider::Provider>,
     session: &mut MewSession,
+    theme: &Theme,
     cancelled: Arc<AtomicBool>,
 ) -> Result<()> {
     loop {
         if cancelled.load(Ordering::SeqCst) {
             save_session(paths, session).await?;
             println!();
-            println!("{}", status_line(&format!("saved session {}", session.id)));
+            println!("{}", status_line(&theme, &format!("saved session {}", session.id)));
             break;
         }
 
@@ -114,7 +124,7 @@ async fn chat_loop(
 
         if input == "/" || input == "/help" {
             println!();
-            println!("{}", slash_menu());
+            println!("{}", slash_menu(&theme));
             println!();
             continue;
         }
@@ -125,7 +135,7 @@ async fn chat_loop(
         }
 
         if input == "/model" {
-            println!("{}", status_line(&format!("model: {}/{}", provider_id, model_id)));
+            println!("{}", status_line(&theme, &format!("model: {}/{}", provider_id, model_id)));
             continue;
         }
 
@@ -175,7 +185,7 @@ async fn chat_loop(
             continue;
         }
 
-        println!("{}", user_line(&input));
+        println!("{}", user_line(&theme, &input));
         session.push(user_message(input.clone()));
 
         let start = Instant::now();
@@ -215,7 +225,7 @@ async fn chat_loop(
 
         println!(
             "{}",
-            meta_line(&format!(
+            meta_line(&theme, &format!(
                 "time={}ms model={}/{} tokens=in:{} out:{} session={}",
                 elapsed.as_millis(),
                 provider_id,
@@ -233,7 +243,7 @@ async fn chat_loop(
     }
 
     save_session(paths, session).await?;
-    println!("{}", status_line(&format!("saved session {}", session.id)));
+    println!("{}", status_line(&theme, &format!("saved session {}", session.id)));
 
     Ok(())
 }

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use mew_common::{MewConfig, MewPaths};
 use mew_session::{list_sessions, load_session};
-use mew_ui::kv_table;
+use mew_ui::{kv_table, render_markdown_light, theme_by_name};
 
 use crate::args::{SessionCommand, SessionSubcommand};
 
@@ -34,6 +34,7 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: SessionCommand) -> 
         }
         SessionSubcommand::Show { id } => {
             let s = load_session(paths, &id).await?;
+            let theme = theme_by_name(&cfg.style.theme);
 
             println!(
                 "{}",
@@ -54,7 +55,11 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: SessionCommand) -> 
 
             for msg in s.messages {
                 println!("--- {}", msg.role);
-                println!("{}", msg.content);
+                if msg.role == "assistant" {
+                    println!("{}", render_markdown_light(&theme, &msg.content));
+                } else {
+                    println!("{}", msg.content);
+                }
                 println!();
             }
         }
