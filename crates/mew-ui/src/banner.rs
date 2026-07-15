@@ -1,20 +1,20 @@
 use mew_common::MewConfig;
-use owo_colors::OwoColorize;
 
 use crate::layout::{center, fit, kv_line, line, ScreenClass, TerminalLayout};
 use crate::phrases::phrase;
+use crate::theme::Theme;
 
-pub fn startup_banner(cfg: &MewConfig, project_status: &str) -> String {
+pub fn startup_banner(theme: &Theme, cfg: &MewConfig, project_status: &str) -> String {
     let layout = TerminalLayout::detect();
     match layout.class {
-        ScreenClass::Tiny => tiny_banner(cfg, project_status, layout),
-        ScreenClass::Narrow => narrow_banner(cfg, project_status, layout),
-        ScreenClass::Normal => normal_banner(cfg, project_status, layout),
-        ScreenClass::Wide => wide_banner(cfg, project_status, layout),
+        ScreenClass::Tiny => tiny_banner(theme, cfg, project_status, layout),
+        ScreenClass::Narrow => narrow_banner(theme, cfg, project_status, layout),
+        ScreenClass::Normal => normal_banner(theme, cfg, project_status, layout),
+        ScreenClass::Wide => wide_banner(theme, cfg, project_status, layout),
     }
 }
 
-pub fn chat_banner(cfg: &MewConfig, model: &str, directory: &str) -> String {
+pub fn chat_banner(theme: &Theme, cfg: &MewConfig, model: &str, directory: &str) -> String {
     let layout = TerminalLayout::detect();
     let w = layout.card_width();
     let inner = w - 4;
@@ -24,37 +24,47 @@ pub fn chat_banner(cfg: &MewConfig, model: &str, directory: &str) -> String {
     let dir_line = format!("directory: {}", directory);
 
     vec![
-        format!("{}{}{}", "╭".bright_black(), line('─', w - 2), "╮".bright_black()),
         format!(
-            "{} {} {}",
-            "│".bright_black(),
-            fit(&title, inner).bright_cyan(),
-            "│".bright_black()
+            "{}{}{}",
+            theme.border("╭"),
+            theme.border(line('─', w - 2)),
+            theme.border("╮")
         ),
         format!(
             "{} {} {}",
-            "│".bright_black(),
-            fit("", inner),
-            "│".bright_black()
+            theme.border("│"),
+            theme.primary(fit(&title, inner)),
+            theme.border("│")
         ),
         format!(
             "{} {} {}",
-            "│".bright_black(),
-            fit(&model_line, inner),
-            "│".bright_black()
+            theme.border("│"),
+            theme.primary(fit("", inner)),
+            theme.border("│")
         ),
         format!(
             "{} {} {}",
-            "│".bright_black(),
-            fit(&dir_line, inner),
-            "│".bright_black()
+            theme.border("│"),
+            theme.primary(fit(&model_line, inner)),
+            theme.border("│")
         ),
-        format!("{}{}{}", "╰".bright_black(), line('─', w - 2), "╯".bright_black()),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.primary(fit(&dir_line, inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{}{}{}",
+            theme.border("╰"),
+            theme.border(line('─', w - 2)),
+            theme.border("╯")
+        ),
     ]
     .join("\n")
 }
 
-pub fn slash_menu() -> String {
+pub fn slash_menu(theme: &Theme) -> String {
     let layout = TerminalLayout::detect();
     let w = layout.card_width();
     let inner = w - 4;
@@ -72,76 +82,96 @@ pub fn slash_menu() -> String {
     let mut out = String::new();
     out.push_str(&format!(
         "{}{}{}\n",
-        "╭─ ".bright_black(),
-        "commands".bright_magenta(),
-        format!(" {}", line('─', w.saturating_sub(12))).bright_black()
+        theme.border("╭─ "),
+        theme.accent("commands"),
+        theme.border(format!(" {}", line('─', w.saturating_sub(12))))
     ));
 
     for (cmd, desc) in rows {
         out.push_str(&format!(
             "{} {} {}\n",
-            "│".bright_black(),
+            theme.border("│"),
             fit(&format!("{:<15} {}", cmd, desc), inner),
-            "│".bright_black()
+            theme.border("│")
         ));
     }
 
     out.push_str(&format!(
         "{}{}{}",
-        "╰".bright_black(),
-        line('─', w - 2),
-        "╯".bright_black()
+        theme.border("╰"),
+        theme.border(line('─', w - 2)),
+        theme.border("╯")
     ));
 
     out
 }
 
-fn tiny_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
+fn tiny_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
     let w = layout.card_width();
     let inner = w - 4;
     let name = format!("{} agent", cfg.identity.display_name);
     let tagline = phrase("startup");
 
     vec![
-        format!("{}", "╭".bright_black()) + &line('─', w - 2) + &format!("{}", "╮".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit("/\\_/\\\\", inner), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit("( o.o )", inner), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(" > ^ <", inner), "│".bright_black()),
-        format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(&name, inner).bright_cyan(), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(tagline, inner), "│".bright_black()),
-        format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(&kv_line("model", &cfg.providers.active_model, inner), inner), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(&kv_line("project", project_status, inner), inner), "│".bright_black()),
-        format!("{}", "╰".bright_black()) + &line('─', w - 2) + &format!("{}", "╯".bright_black()),
+        format!("{}", theme.border("╭")) + &theme.border(line('─', w - 2)) + &theme.border("╮"),
+        format!("{} {} {}", theme.border("│"), theme.accent(fit("/\\_/\\", inner)), theme.border("│")),
+        format!("{} {} {}", theme.border("│"), theme.accent(fit("( o.o )", inner)), theme.border("│")),
+        format!("{} {} {}", theme.border("│"), theme.accent(fit(" > ^ <", inner)), theme.border("│")),
+        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
+        format!("{} {} {}", theme.border("│"), theme.primary(fit(&name, inner)), theme.border("│")),
+        format!("{} {} {}", theme.border("│"), theme.dim(fit(tagline, inner)), theme.border("│")),
+        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.primary(fit(&kv_line("model", &cfg.providers.active_model, inner), inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.primary(fit(&kv_line("project", project_status, inner), inner)),
+            theme.border("│")
+        ),
+        format!("{}", theme.border("╰")) + &theme.border(line('─', w - 2)) + &theme.border("╯"),
     ]
     .join("\n")
 }
 
-fn narrow_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
+fn narrow_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
     let w = layout.card_width();
     let inner = w - 4;
     let name = format!("{} agent", cfg.identity.display_name);
     let tagline = phrase("startup");
 
     vec![
-        format!("{}", "╭".bright_black()) + &line('─', w - 2) + &format!("{}", "╮".bright_black()),
-        format!("{} {} {}", "│".bright_black(), center("╱|、", inner).bright_magenta(), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), center("(˚ˎ 。7", inner).bright_magenta(), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), center("|、˜〵", inner).bright_magenta(), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), center("じしˍ,)ノ", inner).bright_magenta(), "│".bright_black()),
-        format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
-        format!("{} {} {}", "│".bright_black(), center(&name, inner).bright_cyan(), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), center(tagline, inner), "│".bright_black()),
-        format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(&kv_line("model", &cfg.providers.active_model, inner), inner), "│".bright_black()),
-        format!("{} {} {}", "│".bright_black(), fit(&kv_line("project", project_status, inner), inner), "│".bright_black()),
-        format!("{}", "╰".bright_black()) + &line('─', w - 2) + &format!("{}", "╯".bright_black()),
+        format!("{}", theme.border("╭")) + &theme.border(line('─', w - 2)) + &theme.border("╮"),
+        format!("{} {} {}", theme.border("│"), theme.accent(center("╱|、", inner)), theme.border("│")),
+        format!("{} {} {}", theme.border("│"), theme.accent(center("(˚ˎ 。7", inner)), theme.border("│")),
+        format!("{} {} {}", theme.border("│"), theme.accent(center("|、˜〵", inner)), theme.border("│")),
+        format!("{} {} {}", theme.border("│"), theme.accent(center("じしˍ,)ノ", inner)), theme.border("│")),
+        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
+        format!("{} {} {}", theme.border("│"), theme.primary(center(&name, inner)), theme.border("│")),
+        format!("{} {} {}", theme.border("│"), theme.dim(center(tagline, inner)), theme.border("│")),
+        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.primary(fit(&kv_line("model", &cfg.providers.active_model, inner), inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.primary(fit(&kv_line("project", project_status, inner), inner)),
+            theme.border("│")
+        ),
+        format!("{}", theme.border("╰")) + &theme.border(line('─', w - 2)) + &theme.border("╯"),
     ]
     .join("\n")
 }
 
-fn normal_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
+fn normal_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
     let w = layout.card_width();
     let inner = w - 4;
     let left = 26;
@@ -150,49 +180,49 @@ fn normal_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) 
     let tagline = phrase("startup");
 
     vec![
-        format!("{}", "╭".bright_black()) + &line('─', w - 2) + &format!("{}", "╮".bright_black()),
+        format!("{}", theme.border("╭")) + &theme.border(line('─', w - 2)) + &theme.border("╮"),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit("        *      /\\_/\\\\", left).bright_magenta(),
-            fit(&name, right).bright_cyan(),
-            "│".bright_black()
+            theme.border("│"),
+            theme.accent(fit("        *      /\\_/\\", left)),
+            theme.primary(fit(&name, right)),
+            theme.border("│")
         ),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit("   *          ( o.o )", left).bright_magenta(),
-            fit(tagline, right),
-            "│".bright_black()
+            theme.border("│"),
+            theme.accent(fit("   *          ( o.o )", left)),
+            theme.primary(fit(tagline, right)),
+            theme.border("│")
         ),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit("        ░░░    > ^ <", left).bright_magenta(),
-            fit("cute shell · sharp claws", right).bright_black(),
-            "│".bright_black()
+            theme.border("│"),
+            theme.accent(fit("        ░░░    > ^ <", left)),
+            theme.dim(fit("cute shell · sharp claws", right)),
+            theme.border("│")
         ),
-        format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
+        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit(&kv_line("model", &cfg.providers.active_model, left), left),
-            fit(&kv_line("project", project_status, right), right),
-            "│".bright_black()
+            theme.border("│"),
+            theme.primary(fit(&kv_line("model", &cfg.providers.active_model, left), left)),
+            theme.primary(fit(&kv_line("project", project_status, right), right)),
+            theme.border("│")
         ),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit(&kv_line("style", &cfg.style.theme, left), left),
-            fit(&kv_line("exit", "/exit or ctrl+c", right), right),
-            "│".bright_black()
+            theme.border("│"),
+            theme.primary(fit(&kv_line("style", &cfg.style.theme, left), left)),
+            theme.primary(fit(&kv_line("exit", "/exit or ctrl+c", right), right)),
+            theme.border("│")
         ),
-        format!("{}", "╰".bright_black()) + &line('─', w - 2) + &format!("{}", "╯".bright_black()),
+        format!("{}", theme.border("╰")) + &theme.border(line('─', w - 2)) + &theme.border("╯"),
     ]
     .join("\n")
 }
 
-fn wide_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
+fn wide_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
     let w = layout.card_width();
     let inner = w - 4;
     let left = 34;
@@ -201,51 +231,51 @@ fn wide_banner(cfg: &MewConfig, project_status: &str, layout: TerminalLayout) ->
     let tagline = phrase("startup");
 
     vec![
-        format!("{}", "╭".bright_black()) + &line('─', w - 2) + &format!("{}", "╮".bright_black()),
+        format!("{}", theme.border("╭")) + &theme.border(line('─', w - 2)) + &theme.border("╮"),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit("   *              ╱|、", left).bright_magenta(),
-            fit(&name, right).bright_cyan(),
-            "│".bright_black()
+            theme.border("│"),
+            theme.accent(fit("   *              ╱|、", left)),
+            theme.primary(fit(&name, right)),
+            theme.border("│")
         ),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit("        ░░░     (˚ˎ 。7", left).bright_magenta(),
-            fit(tagline, right),
-            "│".bright_black()
+            theme.border("│"),
+            theme.accent(fit("        ░░░     (˚ˎ 。7", left)),
+            theme.primary(fit(tagline, right)),
+            theme.border("│")
         ),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit("    ░░░░░░░░      |、˜〵", left).bright_magenta(),
-            fit("CLI-first · token-smart · guard-protected", right).bright_black(),
-            "│".bright_black()
+            theme.border("│"),
+            theme.accent(fit("    ░░░░░░░░      |、˜〵", left)),
+            theme.dim(fit("CLI-first · token-smart · guard-protected", right)),
+            theme.border("│")
         ),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit("  ░░░░░░░░░░░░    じしˍ,)ノ", left).bright_magenta(),
-            fit("from Termux caves to x86 castles", right).bright_black(),
-            "│".bright_black()
+            theme.border("│"),
+            theme.accent(fit("  ░░░░░░░░░░░░    じしˍ,)ノ", left)),
+            theme.dim(fit("from Termux caves to x86 castles", right)),
+            theme.border("│")
         ),
-        format!("{}{}{}", "├".bright_black(), line('─', w - 2), "┤".bright_black()),
+        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit(&kv_line("model", &cfg.providers.active_model, left), left),
-            fit(&kv_line("project", project_status, right), right),
-            "│".bright_black()
+            theme.border("│"),
+            theme.primary(fit(&kv_line("model", &cfg.providers.active_model, left), left)),
+            theme.primary(fit(&kv_line("project", project_status, right), right)),
+            theme.border("│")
         ),
         format!(
             "{} {}  {} {}",
-            "│".bright_black(),
-            fit(&kv_line("style", &cfg.style.theme, left), left),
-            fit(&kv_line("exit", "/exit or ctrl+c", right), right),
-            "│".bright_black()
+            theme.border("│"),
+            theme.primary(fit(&kv_line("style", &cfg.style.theme, left), left)),
+            theme.primary(fit(&kv_line("exit", "/exit or ctrl+c", right), right)),
+            theme.border("│")
         ),
-        format!("{}", "╰".bright_black()) + &line('─', w - 2) + &format!("{}", "╯".bright_black()),
+        format!("{}", theme.border("╰")) + &theme.border(line('─', w - 2)) + &theme.border("╯"),
     ]
     .join("\n")
 }

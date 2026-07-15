@@ -92,22 +92,41 @@ impl Provider for GeminiProvider {
             api_key
         );
 
-        let mut text = String::new();
+        let mut contents: Vec<GeminiContent> = Vec::new();
+        let mut system_parts: Vec<GeminiPart> = Vec::new();
+
         for msg in req.messages {
-            if msg.role == "system" {
-                text.push_str("System: ");
-                text.push_str(&msg.content);
-                text.push_str("\n\n");
-            } else {
-                text.push_str(&msg.content);
-                text.push_str("\n\n");
+            match msg.role.as_str() {
+                "system" => system_parts.push(GeminiPart {
+                    text: msg.content,
+                }),
+                "assistant" => contents.push(GeminiContent {
+                    role: "model".to_string(),
+                    parts: vec![GeminiPart {
+                        text: msg.content,
+                    }],
+                }),
+                _ => contents.push(GeminiContent {
+                    role: "user".to_string(),
+                    parts: vec![GeminiPart {
+                        text: msg.content,
+                    }],
+                }),
             }
         }
 
+        let system_instruction = if system_parts.is_empty() {
+            None
+        } else {
+            Some(GeminiContent {
+                role: "user".to_string(),
+                parts: system_parts,
+            })
+        };
+
         let body = GeminiRequest {
-            contents: vec![GeminiContent {
-                parts: vec![GeminiPart { text }],
-            }],
+            contents,
+            system_instruction,
             generation_config: GeminiGenerationConfig {
                 temperature: req.temperature,
                 max_output_tokens: req.max_tokens,
@@ -158,12 +177,15 @@ impl Provider for GeminiProvider {
 #[derive(Debug, Serialize)]
 struct GeminiRequest {
     contents: Vec<GeminiContent>,
+    #[serde(rename = "systemInstruction", skip_serializing_if = "Option::is_none")]
+    system_instruction: Option<GeminiContent>,
     #[serde(rename = "generationConfig")]
     generation_config: GeminiGenerationConfig,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct GeminiContent {
+    role: String,
     parts: Vec<GeminiPart>,
 }
 

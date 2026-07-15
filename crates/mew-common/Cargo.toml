@@ -9,4 +9,3 @@ anyhow.workspace = true
 serde.workspace = true
 toml.workspace = true
 directories.workspace = true
-rand.workspace = true

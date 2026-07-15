@@ -2,7 +2,7 @@ use anyhow::Result;
 use mew_common::{MewConfig, MewPaths};
 use mew_provider::{system_message, user_message, ChatRequest, ProviderRegistry};
 use mew_session::{save_session, MewSession};
-use mew_ui::{meta_line, phrase, status_line};
+use mew_ui::{assistant_bubble, meta_line, phrase, status_line, theme_by_name, Theme};
 use std::io::{self, Write};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -20,6 +20,7 @@ pub async fn run(
     let (provider_id, model_id) = ProviderRegistry::parse_model_ref(&model_ref)?;
     let reg = ProviderRegistry::from_config(cfg);
     let provider = reg.get(&provider_id)?;
+    let theme = theme_by_name(&cfg.style.theme);
 
     let cancelled = install_cancel_flag();
 
@@ -28,7 +29,7 @@ pub async fn run(
         user_message(prompt.clone()),
     ];
 
-    println!("{}", status_line(phrase("connecting")));
+    println!("{}", status_line(&theme, phrase("connecting")));
 
     let start = Instant::now();
     let spinner = start_spinner("meowiinnggg~");
@@ -43,23 +44,24 @@ pub async fn run(
                 temperature: Some(0.2),
                 max_tokens: None,
             },
-            &mut |delta: String| {
+            &mut |_delta: String| {
                 spinner.store(false, Ordering::SeqCst);
-                streamed.push_str(&delta);
-                print!("{}", delta);
-                let _ = io::stdout().flush();
             },
         )
         .await?;
 
     spinner.store(false, Ordering::SeqCst);
-    println!();
-    println!();
+    streamed = res.text.clone();
 
     if cancelled.load(Ordering::SeqCst) {
-        println!("{}", status_line("cancelled"));
+        println!();
+        println!("{}", status_line(&theme, "cancelled"));
         return Ok(());
     }
+
+    println!();
+    println!("{}", assistant_bubble(&theme, &cfg.identity.display_name, &streamed));
+    println!();
 
     let elapsed = start.elapsed();
 
@@ -69,26 +71,29 @@ pub async fn run(
     }
     session.push(mew_provider::ChatMessage {
         role: "assistant".to_string(),
-        content: res.text.clone(),
+        content: streamed,
     });
 
     save_session(paths, &session).await?;
 
     println!(
         "{}",
-        meta_line(&format!(
-            "time={}ms model={}/{} tokens=in:{} out:{} session={}",
-            elapsed.as_millis(),
-            provider_id,
-            model_id,
-            res.input_tokens
-                .map(|x| x.to_string())
-                .unwrap_or_else(|| "?".to_string()),
-            res.output_tokens
-                .map(|x| x.to_string())
-                .unwrap_or_else(|| "?".to_string()),
-            session.id
-        ))
+        meta_line(
+            &theme,
+            &format!(
+                "time={}ms model={}/{} tokens=in:{} out:{} session={}",
+                elapsed.as_millis(),
+                provider_id,
+                model_id,
+                res.input_tokens
+                    .map(|x| x.to_string())
+                    .unwrap_or_else(|| "?".to_string()),
+                res.output_tokens
+                    .map(|x| x.to_string())
+                    .unwrap_or_else(|| "?".to_string()),
+                session.id
+            )
+        )
     );
 
     Ok(())

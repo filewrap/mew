@@ -1,8 +1,7 @@
-use owo_colors::OwoColorize;
-
 use crate::layout::{fit, line, wrap_lines, TerminalLayout};
+use crate::theme::Theme;
 
-pub fn render_code(lang: &str, code: &str) -> String {
+pub fn render_code(theme: &Theme, lang: &str, code: &str) -> String {
     let layout = TerminalLayout::detect();
     let w = layout.card_width();
     let inner = w - 4;
@@ -10,31 +9,31 @@ pub fn render_code(lang: &str, code: &str) -> String {
     let mut out = String::new();
     out.push_str(&format!(
         "{}{}{}\n",
-        "╭─ ".bright_black(),
-        lang.bright_cyan(),
-        format!(" {}", line('─', w.saturating_sub(lang.len() + 5))).bright_black()
+        theme.border("╭─ "),
+        theme.primary(lang),
+        theme.border(format!(" {}", line('─', w.saturating_sub(lang.len() + 5))))
     ));
 
     for raw in code.lines() {
         out.push_str(&format!(
             "{} {} {}\n",
-            "│".bright_black(),
+            theme.border("│"),
             fit(raw, inner),
-            "│".bright_black()
+            theme.border("│")
         ));
     }
 
     out.push_str(&format!(
         "{}{}{}",
-        "╰".bright_black(),
-        line('─', w - 2),
-        "╯".bright_black()
+        theme.border("╰"),
+        theme.border(line('─', w - 2)),
+        theme.border("╯")
     ));
 
     out
 }
 
-pub fn render_diff(diff: &str) -> String {
+pub fn render_diff(theme: &Theme, diff: &str) -> String {
     let layout = TerminalLayout::detect();
     let w = layout.card_width();
     let inner = w - 4;
@@ -42,41 +41,41 @@ pub fn render_diff(diff: &str) -> String {
     let mut out = String::new();
     out.push_str(&format!(
         "{}{}{}\n",
-        "╭─ ".bright_black(),
-        "diff".bright_magenta(),
-        format!(" {}", line('─', w.saturating_sub(7))).bright_black()
+        theme.border("╭─ "),
+        theme.accent("diff"),
+        theme.border(format!(" {}", line('─', w.saturating_sub(7))))
     ));
 
     for raw in diff.lines() {
         let styled = if raw.starts_with('+') {
-            raw.bright_green().to_string()
+            theme.ok(raw)
         } else if raw.starts_with('-') {
-            raw.bright_red().to_string()
+            theme.err(raw)
         } else if raw.starts_with("diff") || raw.starts_with("@@") {
-            raw.bright_black().to_string()
+            theme.dim(raw)
         } else {
             raw.to_string()
         };
 
         out.push_str(&format!(
             "{} {} {}\n",
-            "│".bright_black(),
+            theme.border("│"),
             fit(&styled, inner),
-            "│".bright_black()
+            theme.border("│")
         ));
     }
 
     out.push_str(&format!(
         "{}{}{}",
-        "╰".bright_black(),
-        line('─', w - 2),
-        "╯".bright_black()
+        theme.border("╰"),
+        theme.border(line('─', w - 2)),
+        theme.border("╯")
     ));
 
     out
 }
 
-pub fn render_markdown_light(input: &str) -> String {
+pub fn render_markdown_light(theme: &Theme, input: &str) -> String {
     let layout = TerminalLayout::detect();
     let width = layout.card_width().saturating_sub(4).max(24);
 
@@ -90,7 +89,7 @@ pub fn render_markdown_light(input: &str) -> String {
 
         if line.starts_with("```") {
             if in_code {
-                out.push_str(&render_code(&code_lang, code.trim_end()));
+                out.push_str(&render_code(theme, &code_lang, code.trim_end()));
                 out.push('\n');
                 code.clear();
                 code_lang.clear();
@@ -117,19 +116,19 @@ pub fn render_markdown_light(input: &str) -> String {
         }
 
         if line.starts_with("# ") {
-            out.push_str(&line.trim_start_matches("# ").bright_cyan().bold().to_string());
+            out.push_str(&theme.h1(line.trim_start_matches("# ")));
             out.push('\n');
             continue;
         }
 
         if line.starts_with("## ") {
-            out.push_str(&line.trim_start_matches("## ").bright_magenta().bold().to_string());
+            out.push_str(&theme.h2(line.trim_start_matches("## ")));
             out.push('\n');
             continue;
         }
 
         if line.starts_with("### ") {
-            out.push_str(&line.trim_start_matches("### ").bright_blue().bold().to_string());
+            out.push_str(&theme.h3(line.trim_start_matches("### ")));
             out.push('\n');
             continue;
         }
@@ -138,7 +137,11 @@ pub fn render_markdown_light(input: &str) -> String {
             let item = line[2..].trim();
             for (i, wrapped) in wrap_lines(item, width.saturating_sub(4)).iter().enumerate() {
                 if i == 0 {
-                    out.push_str(&format!("  {} {}\n", "•".bright_magenta(), wrapped));
+                    out.push_str(&format!(
+                        "  {} {}\n",
+                        theme.bullet("•"),
+                        wrapped
+                    ));
                 } else {
                     out.push_str(&format!("    {}\n", wrapped));
                 }
@@ -149,7 +152,7 @@ pub fn render_markdown_light(input: &str) -> String {
         if line.starts_with("> ") {
             let quote = line.trim_start_matches("> ").trim();
             for wrapped in wrap_lines(quote, width.saturating_sub(3)) {
-                out.push_str(&format!("{} {}\n", "│".bright_black(), wrapped.bright_black()));
+                out.push_str(&format!("{} {}\n", theme.border("│"), theme.quote(wrapped)));
             }
             continue;
         }
@@ -161,56 +164,56 @@ pub fn render_markdown_light(input: &str) -> String {
     }
 
     if in_code && !code.is_empty() {
-        out.push_str(&render_code(&code_lang, code.trim_end()));
+        out.push_str(&render_code(theme, &code_lang, code.trim_end()));
         out.push('\n');
     }
 
     out.trim_end().to_string()
 }
 
-pub fn assistant_bubble(name: &str, text: &str) -> String {
+pub fn assistant_bubble(theme: &Theme, name: &str, text: &str) -> String {
     let layout = TerminalLayout::detect();
     let w = layout.card_width();
     let inner = w - 4;
-    let rendered = render_markdown_light(text);
+    let rendered = render_markdown_light(theme, text);
 
     let mut out = String::new();
     out.push_str(&format!(
         "{}{}{}\n",
-        "╭─ ".bright_black(),
-        name.bright_cyan(),
-        format!(" {}", line('─', w.saturating_sub(name.len() + 5))).bright_black()
+        theme.border("╭─ "),
+        theme.primary(name),
+        theme.border(format!(" {}", line('─', w.saturating_sub(name.len() + 5))))
     ));
 
     for raw in rendered.lines() {
         for wrapped in wrap_lines(raw, inner) {
             out.push_str(&format!(
                 "{} {} {}\n",
-                "│".bright_black(),
+                theme.border("│"),
                 fit(&wrapped, inner),
-                "│".bright_black()
+                theme.border("│")
             ));
         }
     }
 
     out.push_str(&format!(
         "{}{}{}",
-        "╰".bright_black(),
-        line('─', w - 2),
-        "╯".bright_black()
+        theme.border("╰"),
+        theme.border(line('─', w - 2)),
+        theme.border("╯")
     ));
 
     out
 }
 
-pub fn user_line(text: &str) -> String {
-    format!("{} {}", "›".bright_magenta(), text)
+pub fn user_line(theme: &Theme, text: &str) -> String {
+    format!("{} {}", theme.accent("›"), text)
 }
 
-pub fn status_line(text: &str) -> String {
-    format!("{} {}", "•".bright_cyan(), text.bright_black())
+pub fn status_line(theme: &Theme, text: &str) -> String {
+    format!("{} {}", theme.primary("•"), theme.dim(text))
 }
 
-pub fn meta_line(text: &str) -> String {
-    format!("{}", text.bright_black())
+pub fn meta_line(theme: &Theme, text: &str) -> String {
+    format!("{}", theme.dim(text))
 }
