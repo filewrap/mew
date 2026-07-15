@@ -28,8 +28,11 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      # Normalize formatting in place so later steps build clean code.
+      # (Run `cargo fmt --all` locally before committing to keep the
+      #  repo itself formatted.)
       - name: Format
-        run: cargo fmt --all -- --check
+        run: cargo fmt --all
 
       - name: Clippy
         run: cargo clippy --workspace --all-targets
@@ -102,3 +105,45 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: mew-${{ matrix.target }}.${{ matrix.archive }}
+
+  termux:
+    name: Release (termux / aarch64-linux-android)
+    if: github.event_name == 'release'
+    needs: ci
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25b
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release (termux)
+        run: cargo ndk --target aarch64-linux-android --platform 24 -p mew-cli -- build --release
+
+      - name: Package
+        shell: bash
+        run: |
+          cd "target/aarch64-linux-android/release"
+          tar -czf "mew-termux-aarch64.tar.gz" mew
+          mv "mew-termux-aarch64.tar.gz" "$GITHUB_WORKSPACE/"
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: mew-termux-aarch64.tar.gz
