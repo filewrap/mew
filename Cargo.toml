@@ -4,7 +4,8 @@ members = [
   "crates/mew-common",
   "crates/mew-ui",
   "crates/mew-provider",
-  "crates/mew-session"
+  "crates/mew-session",
+  "crates/mew-index"
 ]
 resolver = "2"
 

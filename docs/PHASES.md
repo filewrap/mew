@@ -119,14 +119,14 @@ Status: done
 
 ## Phase 3 — Project Init + Context Sniffer
 
-Status: in progress
+Status: done
 
 - [x] `mew init` writes `.mew/`
 - [x] `.mew/project.toml`
 - [x] `.mew/repo-map.md`
 - [x] `.mew/memory.md` (created only if missing; never overwritten)
 - [x] AGENT.md / CLAUDE.md / GEMINI.md detection
-- [ ] create `mew-index` (persistent context index crate)
+- [x] create `mew-index` (persistent context index crate; writes `.mew/index.json`)
 
 ## Phase 4 — Native Tools + Guard
 
