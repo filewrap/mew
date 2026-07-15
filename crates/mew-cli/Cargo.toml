@@ -22,4 +22,5 @@ mew-ui = { path = "../mew-ui" }
 tokio.workspace = true
 mew-provider = { path = "../mew-provider" }
 mew-session = { path = "../mew-session" }
+mew-index = { path = "../mew-index" }
 ctrlc.workspace = true
