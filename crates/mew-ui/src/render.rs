@@ -1,5 +1,6 @@
 use crate::layout::{fit, line, wrap_lines, TerminalLayout};
 use crate::theme::Theme;
+use mew_markdown::{parse_response, ResponseBlock, ResponseDocument};
 
 pub fn render_code(theme: &Theme, lang: &str, code: &str) -> String {
     let layout = TerminalLayout::detect();
@@ -76,6 +77,56 @@ pub fn render_diff(theme: &Theme, diff: &str) -> String {
 }
 
 pub fn render_markdown_light(theme: &Theme, input: &str) -> String {
+    let document = parse_response(input);
+    render_response_document(theme, &document)
+}
+
+pub fn render_response_document(theme: &Theme, document: &ResponseDocument) -> String {
+    if document.blocks.is_empty() {
+        return render_markdown_base(theme, &document.markdown);
+    }
+
+    let width = TerminalLayout::detect()
+        .card_width()
+        .saturating_sub(4)
+        .max(24);
+    let mut sections = Vec::new();
+    for block in &document.blocks {
+        let rendered = match block {
+            ResponseBlock::Markdown { text } => render_markdown_base(theme, text),
+            ResponseBlock::Quote { text } => {
+                let markdown = text
+                    .lines()
+                    .map(|line| format!("> {line}"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                render_markdown_base(theme, &markdown)
+            }
+            ResponseBlock::Button { button } => {
+                let mut rows = vec![format!(
+                    "{} {}",
+                    theme.accent("◆"),
+                    theme.primary(&button.label)
+                )];
+                rows.extend(
+                    wrap_lines(
+                        &format!("suggestion · {}", button.prompt),
+                        width.saturating_sub(4),
+                    )
+                    .into_iter()
+                    .map(|row| format!("    {}", theme.dim(row))),
+                );
+                rows.join("\n")
+            }
+        };
+        if !rendered.trim().is_empty() {
+            sections.push(rendered.trim().to_string());
+        }
+    }
+    sections.join("\n\n")
+}
+
+fn render_markdown_base(theme: &Theme, input: &str) -> String {
     let layout = TerminalLayout::detect();
     let width = layout.card_width().saturating_sub(4).max(24);
 
@@ -137,11 +188,7 @@ pub fn render_markdown_light(theme: &Theme, input: &str) -> String {
             let item = line[2..].trim();
             for (i, wrapped) in wrap_lines(item, width.saturating_sub(4)).iter().enumerate() {
                 if i == 0 {
-                    out.push_str(&format!(
-                        "  {} {}\n",
-                        theme.bullet("•"),
-                        wrapped
-                    ));
+                    out.push_str(&format!("  {} {}\n", theme.bullet("•"), wrapped));
                 } else {
                     out.push_str(&format!("    {}\n", wrapped));
                 }
@@ -152,7 +199,11 @@ pub fn render_markdown_light(theme: &Theme, input: &str) -> String {
         if line.starts_with("> ") {
             let quote = line.trim_start_matches("> ").trim();
             for wrapped in wrap_lines(quote, width.saturating_sub(3)) {
-                out.push_str(&format!("{} {}\n", theme.border("│"), theme.quote(wrapped)));
+                out.push_str(&format!(
+                    "{} {}\n",
+                    theme.border("│"),
+                    theme.quote(&wrapped)
+                ));
             }
             continue;
         }
@@ -172,10 +223,17 @@ pub fn render_markdown_light(theme: &Theme, input: &str) -> String {
 }
 
 pub fn assistant_bubble(theme: &Theme, name: &str, text: &str) -> String {
+    assistant_bubble_rendered(theme, name, &render_markdown_light(theme, text))
+}
+
+pub fn assistant_bubble_document(theme: &Theme, name: &str, document: &ResponseDocument) -> String {
+    assistant_bubble_rendered(theme, name, &render_response_document(theme, document))
+}
+
+fn assistant_bubble_rendered(theme: &Theme, name: &str, rendered: &str) -> String {
     let layout = TerminalLayout::detect();
     let w = layout.card_width();
     let inner = w - 4;
-    let rendered = render_markdown_light(theme, text);
 
     let mut out = String::new();
     out.push_str(&format!(
@@ -215,5 +273,5 @@ pub fn status_line(theme: &Theme, text: &str) -> String {
 }
 
 pub fn meta_line(theme: &Theme, text: &str) -> String {
-    format!("{}", theme.dim(text))
+    theme.dim(text).to_string()
 }

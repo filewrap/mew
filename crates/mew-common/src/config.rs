@@ -2,16 +2,93 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs;
+use std::path::Path;
 
 use crate::paths::MewPaths;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MewConfig {
+    #[serde(default)]
+    pub setup_complete: bool,
+    #[serde(default)]
+    pub trusted_workspaces: Vec<String>,
+    #[serde(default)]
+    pub tui: TuiConfig,
     pub identity: IdentityConfig,
     pub style: StyleConfig,
     pub agent: AgentConfig,
     pub tokens: TokenConfig,
     pub providers: ProviderConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct TuiConfig {
+    pub favorite_models: Vec<String>,
+    pub recent_models: Vec<String>,
+    /// Selected generation preset per provider/model reference.
+    pub model_variants: BTreeMap<String, String>,
+    /// Key chords keyed by stable TUI action id.
+    pub keybindings: BTreeMap<String, String>,
+}
+
+impl Default for TuiConfig {
+    fn default() -> Self {
+        Self {
+            favorite_models: Vec::new(),
+            recent_models: Vec::new(),
+            model_variants: BTreeMap::new(),
+            keybindings: BTreeMap::from([
+                ("command_palette".into(), "ctrl+p,f1".into()),
+                ("submit".into(), "enter".into()),
+                ("cancel".into(), "ctrl+c".into()),
+                ("eof".into(), "ctrl+d".into()),
+                ("move_home".into(), "ctrl+a".into()),
+                ("move_end".into(), "ctrl+e".into()),
+                ("clear_line".into(), "ctrl+u".into()),
+                ("delete_word".into(), "ctrl+w".into()),
+                ("history_previous".into(), "up".into()),
+                ("history_next".into(), "down".into()),
+                ("complete".into(), "tab,f2".into()),
+                ("transcript_up".into(), "pageup".into()),
+                ("transcript_down".into(), "pagedown".into()),
+            ]),
+        }
+    }
+}
+
+impl TuiConfig {
+    pub fn is_favorite(&self, model_ref: &str) -> bool {
+        self.favorite_models.iter().any(|item| item == model_ref)
+    }
+
+    pub fn toggle_favorite(&mut self, model_ref: &str) -> bool {
+        if let Some(index) = self
+            .favorite_models
+            .iter()
+            .position(|item| item == model_ref)
+        {
+            self.favorite_models.remove(index);
+            false
+        } else {
+            self.favorite_models.push(model_ref.to_string());
+            self.favorite_models.sort();
+            true
+        }
+    }
+
+    pub fn record_model(&mut self, model_ref: &str) {
+        self.recent_models.retain(|item| item != model_ref);
+        self.recent_models.insert(0, model_ref.to_string());
+        self.recent_models.truncate(20);
+    }
+
+    pub fn model_variant(&self, model_ref: &str) -> &str {
+        self.model_variants
+            .get(model_ref)
+            .map(String::as_str)
+            .unwrap_or("balanced")
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,7 +165,8 @@ pub struct CustomProviderConfig {
     pub models: Vec<ModelConfig>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ModelConfig {
     pub id: String,
     pub context: usize,
@@ -100,13 +178,16 @@ pub struct ModelConfig {
 impl Default for MewConfig {
     fn default() -> Self {
         Self {
+            setup_complete: false,
+            trusted_workspaces: Vec::new(),
+            tui: TuiConfig::default(),
             identity: IdentityConfig {
                 display_name: "mew".to_string(),
                 persona: "cute".to_string(),
                 rename_enabled: true,
             },
             style: StyleConfig {
-                theme: "crush-catppuccin".to_string(),
+                theme: "mew-dark".to_string(),
                 animations: true,
                 emoji: true,
                 kaomoji: true,
@@ -196,14 +277,14 @@ impl Default for ProviderConfig {
                     ModelConfig {
                         id: "gemini-2.5-flash".to_string(),
                         context: 1_000_000,
-                        supports_tools: false,
+                        supports_tools: true,
                         supports_vision: true,
                         notes: "fast long-context default".to_string(),
                     },
                     ModelConfig {
                         id: "gemini-2.5-pro".to_string(),
                         context: 1_000_000,
-                        supports_tools: false,
+                        supports_tools: true,
                         supports_vision: true,
                         notes: "deep reasoning long-context".to_string(),
                     },
@@ -215,6 +296,28 @@ impl Default for ProviderConfig {
 }
 
 impl MewConfig {
+    /// Whether the exact canonical workspace path was explicitly trusted.
+    pub fn workspace_is_trusted(&self, canonical_path: &Path) -> bool {
+        let path = canonical_path.to_string_lossy();
+        self.trusted_workspaces
+            .iter()
+            .any(|trusted| trusted == path.as_ref())
+    }
+
+    /// Remember an explicitly trusted canonical workspace without widening it
+    /// to sibling or parent directories.
+    pub fn trust_workspace(&mut self, canonical_path: &Path) {
+        let path = canonical_path.to_string_lossy().into_owned();
+        if !self
+            .trusted_workspaces
+            .iter()
+            .any(|trusted| trusted == &path)
+        {
+            self.trusted_workspaces.push(path);
+            self.trusted_workspaces.sort();
+        }
+    }
+
     pub fn load_or_create(paths: &MewPaths) -> Result<Self> {
         if !paths.config_file.exists() {
             let cfg = Self::default();
@@ -242,5 +345,34 @@ impl MewConfig {
         let raw = toml::to_string_pretty(self)?;
         fs::write(&paths.config_file, raw)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod model_config_compatibility_tests {
+    use super::ModelConfig;
+
+    #[test]
+    fn legacy_model_config_defaults_tool_calls_to_disabled() {
+        let model: ModelConfig = toml::from_str(
+            r#"id = "legacy-model"
+context = 16384
+supports_vision = false
+notes = "legacy config"
+"#,
+        )
+        .unwrap();
+        assert_eq!(model.id, "legacy-model");
+        assert!(!model.supports_tools);
+    }
+
+    #[test]
+    fn old_full_configs_load_as_not_yet_set_up() {
+        let legacy = toml::to_string(&super::MewConfig::default())
+            .unwrap()
+            .replace("setup_complete = false\n", "");
+        let loaded: super::MewConfig = toml::from_str(&legacy).unwrap();
+        assert!(!loaded.setup_complete);
+        assert!(loaded.trusted_workspaces.is_empty());
     }
 }

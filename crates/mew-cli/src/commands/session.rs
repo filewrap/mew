@@ -5,7 +5,12 @@ use mew_ui::{kv_table, render_markdown_light, theme_by_name};
 
 use crate::args::{SessionCommand, SessionSubcommand};
 
-pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: SessionCommand) -> Result<()> {
+pub async fn run(
+    paths: &MewPaths,
+    cfg: &mut MewConfig,
+    cmd: SessionCommand,
+    fullscreen: bool,
+) -> Result<()> {
     match cmd.command {
         SessionSubcommand::List => {
             let sessions = list_sessions(paths).await?;
@@ -64,7 +69,7 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: SessionCommand) -> 
             }
         }
         SessionSubcommand::Resume { id } => {
-            crate::commands::chat::resume(paths, cfg, id).await?;
+            crate::commands::chat::resume(paths, cfg, id, fullscreen).await?;
         }
     }
 

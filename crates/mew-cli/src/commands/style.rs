@@ -5,7 +5,7 @@ use mew_ui::{
     theme_exists, tool_card, THEMES,
 };
 
-use crate::args::{StyleCommand, StyleSubcommand};
+use crate::args::{MotionMode, StyleCommand, StyleSubcommand};
 
 pub fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: StyleCommand) -> Result<()> {
     match cmd.command {
@@ -23,6 +23,18 @@ pub fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: StyleCommand) -> Result<(
             cfg.save(paths)?;
             println!("saved");
         }
+        StyleSubcommand::Motion { mode } => {
+            cfg.style.animations = matches!(mode, MotionMode::Full);
+            cfg.save(paths)?;
+            println!(
+                "saved motion: {}",
+                if cfg.style.animations {
+                    "full"
+                } else {
+                    "reduced"
+                }
+            );
+        }
         StyleSubcommand::Preview => {
             let theme = theme_by_name(&cfg.style.theme);
 
@@ -33,6 +45,7 @@ pub fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: StyleCommand) -> Result<(
                     &[
                         ("theme", cfg.style.theme.clone()),
                         ("density", cfg.style.density.clone()),
+                        ("animations", cfg.style.animations.to_string()),
                         ("emoji", cfg.style.emoji.to_string()),
                         ("kaomoji", cfg.style.kaomoji.to_string()),
                     ],
@@ -42,7 +55,14 @@ pub fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: StyleCommand) -> Result<(
             println!();
             println!(
                 "{}",
-                hint_card(&theme, &["mew style set claude-minimal", "mew name set paww"])
+                hint_card(
+                    &theme,
+                    &[
+                        "mew style set claude-minimal",
+                        "mew style motion reduced",
+                        "mew name set paww",
+                    ]
+                )
             );
             println!();
 
@@ -50,7 +70,7 @@ pub fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: StyleCommand) -> Result<(
             println!("{}", card);
 
             println!();
-            let spin = spinner_frame(3, "thinking");
+            let spin = spinner_frame(if cfg.style.animations { 3 } else { 0 }, "thinking");
             println!("{} {}", spin.frame, spin.text);
             println!("{}", phrase("token"));
             println!("{}", phrase("council"));

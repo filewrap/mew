@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP="mew"
-REPO_URL="${MEW_REPO_URL:-https://github.com/mahesh953-hub/mew}"
+REPO_URL="${MEW_REPO_URL:-https://github.com/filewrap/mew}"
 PREFIX_DIR="${MEW_INSTALL_DIR:-$HOME/.local/bin}"
 SRC_DIR="${MEW_SRC_DIR:-$HOME/.cache/mew-src}"
 

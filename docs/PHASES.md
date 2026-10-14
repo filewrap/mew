@@ -130,62 +130,120 @@ Status: done
 
 ## Phase 4 — Native Tools + Guard
 
-Status: queued
+Status: done
 
-- [ ] create `mew-tools`
-- [ ] create `mew-guard`
-- [ ] fs tools
-- [ ] git tools
-- [ ] http tools
-- [ ] package tools
-- [ ] machine guard
+- [x] create `mew-tools`
+- [x] create `mew-guard`
+- [x] fs tools (workspace-confined list/read/search and exact-match replace)
+- [x] git tools (status and bounded diff)
+- [x] http tools (explicit HTTPS opt-in, public-address resolution, no redirects, response cap)
+- [x] package tools (fixed check/fmt/test commands behind edit-mode approval)
+- [x] machine guard (canonical root, symlink/traversal rejection, read/output/time limits)
 
 ## Phase 5 — Agent Loop v1
 
-Status: queued
+Status: done
 
-- [ ] tool call loop
-- [ ] observations
-- [ ] permissions
-- [ ] read-only ask mode
+- [x] structured tool-call loop for models marked tool-capable
+- [x] tool observations returned as provider tool messages
+- [x] per-action permissions for edits, checks, and network
+- [x] read-only ask mode (`mew ask`, `mew review`, `mew agent --mode ask`)
 
 ## Phase 6 — Edit/Fix/Review
 
-Status: queued
+Status: done
 
-- [ ] patch-first editing
-- [ ] diff preview
-- [ ] fix mode
-- [ ] review mode
+- [x] patch-first exact-match editing
+- [x] diff preview and approval before each write
+- [x] fix mode (`mew fix` / `mew agent --mode edit`)
+- [x] read-only review mode (`mew review`)
 
 ## Phase 7 — Caveman Skills + Token Paw
 
-Status: queued
+Status: done
 
-- [ ] caveman skills
-- [ ] token budgeting
-- [ ] compact context
-- [ ] token usage report
+- [x] built-in and explicitly selected workspace skills
+- [x] model-context token budgeting
+- [x] compact older turns while preserving tool-call/observation pairs
+- [x] provider token usage or a clear estimate in run summaries
 
 ## Phase 8 — Mew Council
 
-Status: queued
+Status: done
 
-- [ ] agent-to-agent talks
-- [ ] planner/coder/reviewer roles
-- [ ] transcript export
+- [x] sequential role-based model talks
+- [x] planner/coder/reviewer roles
+- [x] Markdown transcript export to `.mew/council/`
 
 ## Phase 9 — MCP
 
-Status: queued
+Status: done
 
-- [ ] MCP client
-- [ ] MCP server
-- [ ] native tools bridge
+- [x] stdio JSON-RPC MCP client (`tools/list`, `tools/call`)
+- [x] stdio native MCP server
+- [x] read-only native tools bridge
 
-## Phase 10 — TUI/GUI Later
+## Phase 10 — Native Rust TUI (GUI is a separate frontend)
 
-Status: queued
+Status: in progress — first full-screen shell slice integrated; GUI/platform scope remains open
 
-- [ ] TUI
-- [ ] GUI
+- [x] terminal-aware prompt editor with UTF-8-safe cursor editing and non-TTY fallback
+- [x] arrow-key prompt history and slash-command/custom-command completion
+- [x] responsive chat header with original fixed-grid Miku pixel cat
+- [x] Miku thinking/running expressions in the live request indicator
+- [x] Miku idle blink loop in the composer and local `/miku`/`/meow` animation
+- [x] safe, actionable expired-provider-key recovery without echoing HTTP 401 bodies
+- [x] persistent compact chat status ribbon and searchable keyboard command palette, including project/global slash commands
+- [x] searchable model, provider-to-model, saved-session, and skill selectors backed by existing handlers
+- [x] Miku-branded setup with searchable provider/model choices and a line-oriented fallback
+- [x] quick-start guidance in both `mew --help` and `mew help`
+- [x] initial full-screen TTY transcript viewport, fixed composer/footer, resize redraw, and PageUp/PageDown scrolling
+- [x] explicit `--inline` scrollback-style fallback and unchanged non-TTY line input
+- [x] separate approval-required panel before the existing exact-diff approval prompt
+- [x] runtime lifecycle progress, in-flight cancellation, and visible error/completion states across the full-screen shell
+- [x] searchable workflow/pipeline picker with JSON input launch form, reusing existing runtime and permission paths
+- [x] persistent full/reduced motion preference honored by chat prompts, spinners, and full-screen progress
+- [x] built-in theme selection through `mew style list` and `mew style set <theme>`
+- [x] configurable, persisted keybindings for prompt and full-screen chat actions
+- [ ] usability verification on Termux
+- [x] Start the separate desktop frontend under Phase 12, without replacing this terminal shell
+
+## Phase 11 — Reusable Runtime Backend
+
+Status: runtime orchestration, authored CLI definitions, and native tool protocols for supported provider backends implemented
+
+- [x] create `mew-runtime` as a frontend-independent library
+- [x] run typed agent profiles with provider/model, skills, tools, and per-agent context limits
+- [x] expose structured run results, tool-call traces, usage, metadata, and lifecycle events
+- [x] add bounded, read-only-by-default subagent delegation
+- [x] add workspace-authored subagent profiles with list/show/init/direct-run commands and automatic delegation registration
+- [x] add validated, versioned TOML dependency workflows with CLI list/show/init/validate/run commands
+- [x] add first-class sequential-pipeline CLI commands and runtime API with stage-to-stage dataflow
+- [x] execute independent ready workflow steps in bounded parallel batches
+- [x] preserve per-profile provider/model selection across OpenAI-compatible, OpenRouter, custom-compatible, and Gemini backends
+- [x] implement Gemini native function declarations, calls, and function responses for agent tools/delegation
+- [x] add structured response content parts for text, JSON, media references, artifacts, and opaque payloads
+- [x] add guarded MCP-advertised tool adapters
+- [x] route the existing workspace agent command through the runtime
+- [x] test tool dispatch, subagent delegation, pipeline dataflow, cycle rejection, and UTF-8 output caps
+- [x] define Markdown v3 as the base and implement Mew's silent v4 quote/button layer
+- [ ] extend provider adapters to populate non-text response parts
+
+## Implementation boundary
+
+The CLI is a frontend over `mew-runtime`; reusable APIs and CLI definitions cover agents, subagents, workflows, pipelines, tools, skills, token budgeting, MCP tool adapters, and structured Markdown-v4 response presentation. Native structured calls are implemented using each supported provider's protocol; model-specific capability flags remain enforced. Current built-in provider responses populate text in the response envelope, and non-text media output remains adapter/model dependent. The Markdown v4 extensions are Mew-owned, optional presentation annotations layered over ordinary Markdown; see [`markdown-v4.md`](markdown-v4.md).
+
+## Phase 12 — Cross-platform Desktop App
+
+Status: in progress — the native read-only chat source slice is present, but `cargo test --workspace` now reaches compilation and fails on egui/eframe API and ownership errors in `crates/mew-desktop/src/main.rs`; desktop work remains parked
+
+- [x] Confirm Windows, macOS, and Linux as desktop targets
+- [x] Add a native Rust/egui desktop binary, separate from the CLI/TUI
+- [x] Reuse canonical config, provider/model registry, session persistence, and `mew-core` runtime
+- [x] Add saved-chat navigation, provider/model selection, a chat composer, runtime progress, and original Miku styling
+- [x] Keep the first desktop mode strictly Ask/read-only; no edit, execute, network, or external-tool capability is granted
+- [ ] Resolve egui/eframe API and ownership errors, then compile/test `mew-desktop` (desktop GUI work remains parked)
+- [ ] Add explicit desktop approval UI before enabling any risk-bearing tool capability
+- [ ] Integrate selectable skills, MCP, workflows, and additional workspace/session controls through existing APIs
+- [ ] Define packaging/update/signing and verify builds on Windows and macOS
+- [ ] Add GUI interaction tests and verify session/model edge cases

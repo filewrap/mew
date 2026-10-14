@@ -48,8 +48,21 @@ pub async fn run(paths: &MewPaths, cfg: &mut MewConfig, cmd: ModelCommand) -> Re
             print_models(models);
         }
         ModelSubcommand::Use { model } => {
-            let _ = ProviderRegistry::parse_model_ref(&model)?;
+            let (provider_id, model_id) = ProviderRegistry::parse_model_ref(&model)?;
+            let registry = ProviderRegistry::from_config(cfg);
+            let provider = registry.get(&provider_id)?;
+            if !provider
+                .models()
+                .iter()
+                .any(|configured| configured.id == model_id)
+            {
+                anyhow::bail!(
+                    "model {model:?} is not configured; list configured models with `mew model list {provider_id}`"
+                );
+            }
             cfg.providers.active_model = model.clone();
+            cfg.providers.default = provider_id;
+            cfg.providers.default_model = model_id;
             cfg.save(paths)?;
             println!("{}", model);
         }
@@ -69,11 +82,7 @@ fn print_models(models: Vec<ProviderModel>) {
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
-    table.set_header(vec![
-        Cell::new("#"),
-        Cell::new("name"),
-        Cell::new("id"),
-    ]);
+    table.set_header(vec![Cell::new("#"), Cell::new("name"), Cell::new("id")]);
 
     for (idx, m) in models.iter().enumerate() {
         table.add_row(vec![

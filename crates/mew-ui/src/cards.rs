@@ -45,7 +45,10 @@ pub fn error_card(theme: &Theme, title: &str, body: &str) -> String {
         "{}{}{}\n",
         theme.border("╭─ "),
         theme.err(format!("hiss! {title}")),
-        theme.border(format!(" {}", line('─', w.saturating_sub(title.len() + 10))))
+        theme.border(format!(
+            " {}",
+            line('─', w.saturating_sub(title.len() + 10))
+        ))
     ));
 
     for wrapped in wrap_lines(body, inner) {
@@ -65,6 +68,37 @@ pub fn error_card(theme: &Theme, title: &str, body: &str) -> String {
     ));
 
     out
+}
+
+pub fn approval_panel(theme: &Theme, title: &str, body: &str) -> String {
+    let layout = TerminalLayout::detect();
+    let width = layout.card_width();
+    let inner = width.saturating_sub(4).max(1);
+    let mut output = String::new();
+    output.push_str(&format!(
+        "{}{}{}\n",
+        theme.border("╭─ "),
+        theme.warn(format!("approval · {title}")),
+        theme.border(format!(
+            " {}",
+            line('─', width.saturating_sub(title.len() + 15))
+        ))
+    ));
+    for wrapped in wrap_lines(body, inner) {
+        output.push_str(&format!(
+            "{} {} {}\n",
+            theme.border("│"),
+            fit(&wrapped, inner),
+            theme.border("│")
+        ));
+    }
+    output.push_str(&format!(
+        "{}{}{}",
+        theme.border("╰"),
+        theme.border(line('─', width - 2)),
+        theme.border("╯")
+    ));
+    output
 }
 
 pub fn tool_card(theme: &Theme, tool: &str, target: &str, risk: &str) -> String {

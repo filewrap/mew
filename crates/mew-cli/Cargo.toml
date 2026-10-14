@@ -11,7 +11,11 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+async-trait.workspace = true
 clap.workspace = true
+comfy-table.workspace = true
+rpassword = "7"
+reqwest.workspace = true
 rand.workspace = true
 toml.workspace = true
 tracing.workspace = true
@@ -23,4 +27,16 @@ tokio.workspace = true
 mew-provider = { path = "../mew-provider" }
 mew-session = { path = "../mew-session" }
 mew-index = { path = "../mew-index" }
+mew-core = { path = "../mew-core" }
+mew-runtime = { path = "../mew-runtime" }
+mew-council = { path = "../mew-council" }
+mew-skills = { path = "../mew-skills" }
+mew-mcp = { path = "../mew-mcp" }
+mew-tools = { path = "../mew-tools" }
+mew-tokens = { path = "../mew-tokens" }
+mew-markdown = { path = "../mew-markdown" }
+serde_json.workspace = true
+sha2.workspace = true
+serde.workspace = true
+uuid.workspace = true
 ctrlc.workspace = true

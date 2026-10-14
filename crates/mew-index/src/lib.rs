@@ -158,7 +158,7 @@ fn collect(root: &Path, files: &mut Vec<PathBuf>, depth: usize) -> Result<()> {
 fn detect_languages(files: &[PathBuf]) -> Vec<String> {
     let mut found: Vec<&str> = Vec::new();
 
-    let mut push_if = |ext: &str, lang: &'static str, found: &mut Vec<&str>| {
+    let push_if = |ext: &str, lang: &'static str, found: &mut Vec<&str>| {
         if !found.contains(&lang)
             && files
                 .iter()

@@ -6,6 +6,10 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use uuid::Uuid;
 
+fn default_chat_skills() -> Vec<String> {
+    vec!["caveman".into()]
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MewSession {
     pub id: String,
@@ -14,6 +18,8 @@ pub struct MewSession {
     pub title: String,
     pub provider: String,
     pub model: String,
+    #[serde(default = "default_chat_skills")]
+    pub skills: Vec<String>,
     pub messages: Vec<ChatMessage>,
 }
 
@@ -27,13 +33,18 @@ impl MewSession {
             title: title.into(),
             provider,
             model,
+            skills: default_chat_skills(),
             messages: Vec::new(),
         }
     }
 
     pub fn push(&mut self, msg: ChatMessage) {
-        self.updated_at = Utc::now();
+        self.touch();
         self.messages.push(msg);
+    }
+
+    pub fn touch(&mut self) {
+        self.updated_at = Utc::now();
     }
 }
 
@@ -73,6 +84,26 @@ pub async fn list_sessions(paths: &MewPaths) -> Result<Vec<MewSession>> {
         }
     }
 
-    out.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+    out.sort_by_key(|session| std::cmp::Reverse(session.updated_at));
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_session_without_skills_gets_the_default_skill() {
+        let legacy = serde_json::json!({
+            "id": "legacy",
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+            "title": "old chat",
+            "provider": "openai",
+            "model": "codex-mini-latest",
+            "messages": []
+        });
+        let session: MewSession = serde_json::from_value(legacy).unwrap();
+        assert_eq!(session.skills, vec!["caveman"]);
+    }
 }

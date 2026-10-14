@@ -25,7 +25,7 @@ impl ProviderRegistry {
                 default_model: cfg.providers.openai.default_model.clone(),
                 models,
                 app_title: "mew".to_string(),
-                app_url: "https://github.com/mahesh953-hub/mew".to_string(),
+                app_url: "https://github.com/filewrap/mew".to_string(),
             });
 
             info.push(ProviderInfo {
@@ -50,7 +50,7 @@ impl ProviderRegistry {
                 default_model: cfg.providers.openrouter.default_model.clone(),
                 models,
                 app_title: "mew".to_string(),
-                app_url: "https://github.com/mahesh953-hub/mew".to_string(),
+                app_url: "https://github.com/filewrap/mew".to_string(),
             });
 
             info.push(ProviderInfo {
@@ -67,7 +67,7 @@ impl ProviderRegistry {
         }
 
         if cfg.providers.gemini.enabled {
-            let models = convert_models("gemini", &cfg.providers.gemini.models);
+            let models = convert_gemini_models("gemini", &cfg.providers.gemini.models);
             let provider = Arc::new(GeminiProvider {
                 id: "gemini".to_string(),
                 api_key_env: cfg.providers.gemini.api_key_env.clone(),
@@ -81,7 +81,10 @@ impl ProviderRegistry {
                 name: "Gemini".to_string(),
                 enabled: true,
                 authorized: provider.is_authorized(),
-                auth: format!("api-key env {}", cfg.providers.gemini.api_key_env),
+                auth: format!(
+                    "API key env {} or Google Gemini OAuth (`mew provider login gemini`)",
+                    cfg.providers.gemini.api_key_env
+                ),
                 base_url: cfg.providers.gemini.base_url.clone(),
                 default_model: cfg.providers.gemini.default_model.clone(),
             });
@@ -165,6 +168,21 @@ fn convert_models(provider: &str, models: &[ModelConfig]) -> Vec<ProviderModel> 
         .collect()
 }
 
+fn convert_gemini_models(provider: &str, models: &[ModelConfig]) -> Vec<ProviderModel> {
+    models
+        .iter()
+        .map(|model| ProviderModel {
+            provider: provider.to_string(),
+            id: model.id.clone(),
+            context: model.context,
+            supports_tools: model.supports_tools
+                || matches!(model.id.as_str(), "gemini-2.5-flash" | "gemini-2.5-pro"),
+            supports_vision: model.supports_vision,
+            notes: model.notes.clone(),
+        })
+        .collect()
+}
+
 fn add_custom_openai_compatible(
     id: &str,
     custom: &CustomProviderConfig,
@@ -180,7 +198,7 @@ fn add_custom_openai_compatible(
         default_model: custom.default_model.clone(),
         models,
         app_title: "mew".to_string(),
-        app_url: "https://github.com/mahesh953-hub/mew".to_string(),
+        app_url: "https://github.com/filewrap/mew".to_string(),
     });
 
     info.push(ProviderInfo {
@@ -194,4 +212,45 @@ fn add_custom_openai_compatible(
     });
 
     providers.insert(id.to_string(), provider);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_registered_backend_exposes_configured_native_tool_capability() {
+        let mut config = MewConfig::default();
+        config.providers.gemini.models[0].supports_tools = false;
+        config.providers.custom.insert(
+            "local-compatible".into(),
+            CustomProviderConfig {
+                enabled: true,
+                kind: "openai-compatible".into(),
+                api_key_env: "LOCAL_TEST_KEY".into(),
+                base_url: "http://localhost:1234/v1".into(),
+                default_model: "local-tool-model".into(),
+                models: vec![ModelConfig {
+                    id: "local-tool-model".into(),
+                    context: 16_384,
+                    supports_tools: true,
+                    supports_vision: false,
+                    notes: "test".into(),
+                }],
+            },
+        );
+        let registry = ProviderRegistry::from_config(&config);
+        for (provider_id, model_id) in [
+            ("openai", "codex-mini-latest"),
+            ("openrouter", "qwen/qwen-2.5-coder-32b-instruct"),
+            ("gemini", "gemini-2.5-flash"),
+            ("local-compatible", "local-tool-model"),
+        ] {
+            let provider = registry.get(provider_id).unwrap();
+            assert!(
+                provider.supports_tool_calls(model_id),
+                "{provider_id}/{model_id} should support native tool calls"
+            );
+        }
+    }
 }

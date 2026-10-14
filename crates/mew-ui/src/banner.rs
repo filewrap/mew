@@ -1,6 +1,7 @@
 use mew_common::MewConfig;
 
-use crate::layout::{center, fit, kv_line, line, ScreenClass, TerminalLayout};
+use crate::layout::{center, fit, fit_middle, kv_line, line, ScreenClass, TerminalLayout};
+use crate::miku::{miku_pixel_cat, MikuMotion};
 use crate::phrases::phrase;
 use crate::theme::Theme;
 
@@ -20,10 +21,10 @@ pub fn chat_banner(theme: &Theme, cfg: &MewConfig, model: &str, directory: &str)
     let inner = w - 4;
 
     let title = format!(">_ {} agent", cfg.identity.display_name);
-    let model_line = format!("model:     {}   /model", model);
-    let dir_line = format!("directory: {}", directory);
+    let model_line = fit_middle(&format!("model: {} · /model", model), inner);
+    let dir_line = fit_middle(&format!("directory: {}", directory), inner);
 
-    vec![
+    let mut rows = vec![
         format!(
             "{}{}{}",
             theme.border("╭"),
@@ -36,12 +37,26 @@ pub fn chat_banner(theme: &Theme, cfg: &MewConfig, model: &str, directory: &str)
             theme.primary(fit(&title, inner)),
             theme.border("│")
         ),
-        format!(
-            "{} {} {}",
-            theme.border("│"),
-            theme.primary(fit("", inner)),
-            theme.border("│")
-        ),
+    ];
+    rows.push(format!(
+        "{} {} {}",
+        theme.border("│"),
+        theme.accent(center("Miku · your friendly coding cat", inner)),
+        theme.border("│")
+    ));
+    rows.extend(
+        miku_pixel_cat(theme, MikuMotion::Idle, 0)
+            .iter()
+            .map(|sprite_row| {
+                format!(
+                    "{} {} {}",
+                    theme.border("│"),
+                    center(sprite_row, inner),
+                    theme.border("│")
+                )
+            }),
+    );
+    rows.extend([
         format!(
             "{} {} {}",
             theme.border("│"),
@@ -60,8 +75,8 @@ pub fn chat_banner(theme: &Theme, cfg: &MewConfig, model: &str, directory: &str)
             theme.border(line('─', w - 2)),
             theme.border("╯")
         ),
-    ]
-    .join("\n")
+    ]);
+    rows.join("\n")
 }
 
 pub fn slash_menu(theme: &Theme) -> String {
@@ -70,13 +85,33 @@ pub fn slash_menu(theme: &Theme) -> String {
     let inner = w - 4;
 
     let rows = [
-        ("/model", "show current model"),
-        ("/providers", "list providers"),
-        ("/models", "list models for current provider"),
-        ("/remote-models", "fetch models from current provider"),
-        ("/sessions", "list recent sessions"),
-        ("/clear", "clear terminal"),
-        ("/exit", "save and leave"),
+        ("/tools", "inspect always-on workspace tools"),
+        ("/mcp", "inspect always-on configured MCPs"),
+        ("/mode ask|edit", "read-only or approved patches"),
+        ("/agent id task", "delegate to a named agent"),
+        ("/workflow id", "run a saved workflow"),
+        ("/pipeline id", "run a saved pipeline"),
+        ("/workflows", "list saved workflows"),
+        ("/pipelines", "list saved pipelines"),
+        ("/agents", "list delegatable agents"),
+        ("/skills", "list always-on built-in and workspace skills"),
+        ("/skill <name>", "show a skill's instructions"),
+        ("/provider test id", "validate a provider key"),
+        ("/provider add …", "add a compatible endpoint"),
+        ("/model [#N|ref]", "select by row or model id"),
+        ("/providers · /models", "inspect provider choices"),
+        ("/cwd · /cd <path>", "inspect or change directory"),
+        ("/init", "index the current project"),
+        ("/sessions · /resume", "list or switch saved sessions"),
+        ("/new · /clear", "start a fresh session"),
+        ("/undo · /redo", "undo or restore a chat exchange"),
+        ("/compact", "summarize earlier conversation"),
+        ("/editor · /export", "compose or export Markdown"),
+        ("/connect · /themes", "provider setup and theme list"),
+        (
+            "/continue · /exit",
+            "resume latest session or save and leave",
+        ),
     ];
 
     let mut out = String::new();
@@ -106,25 +141,68 @@ pub fn slash_menu(theme: &Theme) -> String {
     out
 }
 
-fn tiny_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
+fn tiny_banner(
+    theme: &Theme,
+    cfg: &MewConfig,
+    project_status: &str,
+    layout: TerminalLayout,
+) -> String {
     let w = layout.card_width();
     let inner = w - 4;
     let name = format!("{} agent", cfg.identity.display_name);
     let tagline = phrase("startup");
 
-    vec![
-        format!("{}", theme.border("╭")) + &theme.border(line('─', w - 2)) + &theme.border("╮"),
-        format!("{} {} {}", theme.border("│"), theme.accent(fit("/\\_/\\", inner)), theme.border("│")),
-        format!("{} {} {}", theme.border("│"), theme.accent(fit("( o.o )", inner)), theme.border("│")),
-        format!("{} {} {}", theme.border("│"), theme.accent(fit(" > ^ <", inner)), theme.border("│")),
-        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
-        format!("{} {} {}", theme.border("│"), theme.primary(fit(&name, inner)), theme.border("│")),
-        format!("{} {} {}", theme.border("│"), theme.dim(fit(tagline, inner)), theme.border("│")),
-        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
+    [
+        theme.border("╭").to_string() + &theme.border(line('─', w - 2)) + &theme.border("╮"),
         format!(
             "{} {} {}",
             theme.border("│"),
-            theme.primary(fit(&kv_line("model", &cfg.providers.active_model, inner), inner)),
+            theme.accent(fit("/\\_/\\", inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.accent(fit("( o.o )", inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.accent(fit(" > ^ <", inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{}{}{}",
+            theme.border("├"),
+            theme.border(line('─', w - 2)),
+            theme.border("┤")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.primary(fit(&name, inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.dim(fit(tagline, inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{}{}{}",
+            theme.border("├"),
+            theme.border(line('─', w - 2)),
+            theme.border("┤")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.primary(fit(
+                &kv_line("model", &cfg.providers.active_model, inner),
+                inner
+            )),
             theme.border("│")
         ),
         format!(
@@ -133,31 +211,79 @@ fn tiny_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: Ter
             theme.primary(fit(&kv_line("project", project_status, inner), inner)),
             theme.border("│")
         ),
-        format!("{}", theme.border("╰")) + &theme.border(line('─', w - 2)) + &theme.border("╯"),
+        theme.border("╰").to_string() + &theme.border(line('─', w - 2)) + &theme.border("╯"),
     ]
     .join("\n")
 }
 
-fn narrow_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
+fn narrow_banner(
+    theme: &Theme,
+    cfg: &MewConfig,
+    project_status: &str,
+    layout: TerminalLayout,
+) -> String {
     let w = layout.card_width();
     let inner = w - 4;
     let name = format!("{} agent", cfg.identity.display_name);
     let tagline = phrase("startup");
 
-    vec![
-        format!("{}", theme.border("╭")) + &theme.border(line('─', w - 2)) + &theme.border("╮"),
-        format!("{} {} {}", theme.border("│"), theme.accent(center("╱|、", inner)), theme.border("│")),
-        format!("{} {} {}", theme.border("│"), theme.accent(center("(˚ˎ 。7", inner)), theme.border("│")),
-        format!("{} {} {}", theme.border("│"), theme.accent(center("|、˜〵", inner)), theme.border("│")),
-        format!("{} {} {}", theme.border("│"), theme.accent(center("じしˍ,)ノ", inner)), theme.border("│")),
-        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
-        format!("{} {} {}", theme.border("│"), theme.primary(center(&name, inner)), theme.border("│")),
-        format!("{} {} {}", theme.border("│"), theme.dim(center(tagline, inner)), theme.border("│")),
-        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
+    [
+        theme.border("╭").to_string() + &theme.border(line('─', w - 2)) + &theme.border("╮"),
         format!(
             "{} {} {}",
             theme.border("│"),
-            theme.primary(fit(&kv_line("model", &cfg.providers.active_model, inner), inner)),
+            theme.accent(center("╱|、", inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.accent(center("(˚ˎ 。7", inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.accent(center("|、˜〵", inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.accent(center("じしˍ,)ノ", inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{}{}{}",
+            theme.border("├"),
+            theme.border(line('─', w - 2)),
+            theme.border("┤")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.primary(center(&name, inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.dim(center(tagline, inner)),
+            theme.border("│")
+        ),
+        format!(
+            "{}{}{}",
+            theme.border("├"),
+            theme.border(line('─', w - 2)),
+            theme.border("┤")
+        ),
+        format!(
+            "{} {} {}",
+            theme.border("│"),
+            theme.primary(fit(
+                &kv_line("model", &cfg.providers.active_model, inner),
+                inner
+            )),
             theme.border("│")
         ),
         format!(
@@ -166,12 +292,17 @@ fn narrow_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: T
             theme.primary(fit(&kv_line("project", project_status, inner), inner)),
             theme.border("│")
         ),
-        format!("{}", theme.border("╰")) + &theme.border(line('─', w - 2)) + &theme.border("╯"),
+        theme.border("╰").to_string() + &theme.border(line('─', w - 2)) + &theme.border("╯"),
     ]
     .join("\n")
 }
 
-fn normal_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
+fn normal_banner(
+    theme: &Theme,
+    cfg: &MewConfig,
+    project_status: &str,
+    layout: TerminalLayout,
+) -> String {
     let w = layout.card_width();
     let inner = w - 4;
     let left = 26;
@@ -179,8 +310,8 @@ fn normal_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: T
     let name = format!("{} agent", cfg.identity.display_name);
     let tagline = phrase("startup");
 
-    vec![
-        format!("{}", theme.border("╭")) + &theme.border(line('─', w - 2)) + &theme.border("╮"),
+    [
+        theme.border("╭").to_string() + &theme.border(line('─', w - 2)) + &theme.border("╮"),
         format!(
             "{} {}  {} {}",
             theme.border("│"),
@@ -202,11 +333,19 @@ fn normal_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: T
             theme.dim(fit("cute shell · sharp claws", right)),
             theme.border("│")
         ),
-        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
+        format!(
+            "{}{}{}",
+            theme.border("├"),
+            theme.border(line('─', w - 2)),
+            theme.border("┤")
+        ),
         format!(
             "{} {}  {} {}",
             theme.border("│"),
-            theme.primary(fit(&kv_line("model", &cfg.providers.active_model, left), left)),
+            theme.primary(fit(
+                &kv_line("model", &cfg.providers.active_model, left),
+                left
+            )),
             theme.primary(fit(&kv_line("project", project_status, right), right)),
             theme.border("│")
         ),
@@ -217,12 +356,17 @@ fn normal_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: T
             theme.primary(fit(&kv_line("exit", "/exit or ctrl+c", right), right)),
             theme.border("│")
         ),
-        format!("{}", theme.border("╰")) + &theme.border(line('─', w - 2)) + &theme.border("╯"),
+        theme.border("╰").to_string() + &theme.border(line('─', w - 2)) + &theme.border("╯"),
     ]
     .join("\n")
 }
 
-fn wide_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: TerminalLayout) -> String {
+fn wide_banner(
+    theme: &Theme,
+    cfg: &MewConfig,
+    project_status: &str,
+    layout: TerminalLayout,
+) -> String {
     let w = layout.card_width();
     let inner = w - 4;
     let left = 34;
@@ -230,8 +374,8 @@ fn wide_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: Ter
     let name = format!("{} agent", cfg.identity.display_name);
     let tagline = phrase("startup");
 
-    vec![
-        format!("{}", theme.border("╭")) + &theme.border(line('─', w - 2)) + &theme.border("╮"),
+    [
+        theme.border("╭").to_string() + &theme.border(line('─', w - 2)) + &theme.border("╮"),
         format!(
             "{} {}  {} {}",
             theme.border("│"),
@@ -260,11 +404,19 @@ fn wide_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: Ter
             theme.dim(fit("from Termux caves to x86 castles", right)),
             theme.border("│")
         ),
-        format!("{}{}{}", theme.border("├"), theme.border(line('─', w - 2)), theme.border("┤")),
+        format!(
+            "{}{}{}",
+            theme.border("├"),
+            theme.border(line('─', w - 2)),
+            theme.border("┤")
+        ),
         format!(
             "{} {}  {} {}",
             theme.border("│"),
-            theme.primary(fit(&kv_line("model", &cfg.providers.active_model, left), left)),
+            theme.primary(fit(
+                &kv_line("model", &cfg.providers.active_model, left),
+                left
+            )),
             theme.primary(fit(&kv_line("project", project_status, right), right)),
             theme.border("│")
         ),
@@ -275,7 +427,7 @@ fn wide_banner(theme: &Theme, cfg: &MewConfig, project_status: &str, layout: Ter
             theme.primary(fit(&kv_line("exit", "/exit or ctrl+c", right), right)),
             theme.border("│")
         ),
-        format!("{}", theme.border("╰")) + &theme.border(line('─', w - 2)) + &theme.border("╯"),
+        theme.border("╰").to_string() + &theme.border(line('─', w - 2)) + &theme.border("╯"),
     ]
     .join("\n")
 }

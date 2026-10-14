@@ -5,11 +5,14 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+crossterm = "0.29"
 owo-colors.workspace = true
 comfy-table.workspace = true
 rand.workspace = true
 terminal_size.workspace = true
 textwrap.workspace = true
 unicode-width.workspace = true
+unicode-segmentation.workspace = true
 strip-ansi-escapes.workspace = true
 mew-common = { path = "../mew-common" }
+mew-markdown = { path = "../mew-markdown" }

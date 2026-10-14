@@ -3,6 +3,7 @@ use owo_colors::{OwoColorize, Style};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Palette {
     Plain,
+    Dim,
     Black,
     BrightBlack,
     Red,
@@ -25,6 +26,7 @@ impl Palette {
     fn style(self) -> Style {
         match self {
             Palette::Plain => Style::new(),
+            Palette::Dim => Style::new().dimmed(),
             Palette::Black => Style::new().black(),
             Palette::BrightBlack => Style::new().bright_black(),
             Palette::Red => Style::new().red(),
@@ -44,8 +46,9 @@ impl Palette {
         }
     }
 
-    pub fn paint(self, s: &str) -> String {
-        self.style().paint(s).to_string()
+    pub fn paint(self, s: impl AsRef<str>) -> String {
+        let s = s.as_ref();
+        s.style(self.style()).to_string()
     }
 }
 
@@ -67,65 +70,75 @@ pub struct Theme {
 }
 
 impl Theme {
-    pub fn border(&self, s: &str) -> String {
-        self.border.paint(s)
-    }
-
-    pub fn primary(&self, s: &str) -> String {
-        let st = self.primary.style();
-        if self.bold_primary {
-            st.bold().paint(s).to_string()
+    pub fn border(&self, s: impl AsRef<str>) -> String {
+        if self.border == Palette::BrightBlack {
+            Palette::Dim.paint(s)
         } else {
-            st.paint(s)
+            self.border.paint(s)
         }
     }
 
-    pub fn accent(&self, s: &str) -> String {
+    pub fn primary(&self, s: impl AsRef<str>) -> String {
+        let s = s.as_ref();
+        let st = self.primary.style();
+        if self.bold_primary {
+            s.style(st.bold()).to_string()
+        } else {
+            s.style(st).to_string()
+        }
+    }
+
+    pub fn accent(&self, s: impl AsRef<str>) -> String {
         self.accent.paint(s)
     }
 
-    pub fn dim(&self, s: &str) -> String {
-        self.dim.paint(s)
-    }
-
-    fn header(&self, p: Palette, s: &str) -> String {
-        let st = p.style();
-        if self.bold_headers {
-            st.bold().paint(s).to_string()
+    pub fn dim(&self, s: impl AsRef<str>) -> String {
+        if self.dim == Palette::BrightBlack {
+            Palette::Dim.paint(s)
         } else {
-            st.paint(s)
+            self.dim.paint(s)
         }
     }
 
-    pub fn h1(&self, s: &str) -> String {
+    fn header(&self, p: Palette, s: impl AsRef<str>) -> String {
+        let s = s.as_ref();
+        let st = p.style();
+        if self.bold_headers {
+            s.style(st.bold()).to_string()
+        } else {
+            s.style(st).to_string()
+        }
+    }
+
+    pub fn h1(&self, s: impl AsRef<str>) -> String {
         self.header(self.h1, s)
     }
 
-    pub fn h2(&self, s: &str) -> String {
+    pub fn h2(&self, s: impl AsRef<str>) -> String {
         self.header(self.h2, s)
     }
 
-    pub fn h3(&self, s: &str) -> String {
+    pub fn h3(&self, s: impl AsRef<str>) -> String {
         self.header(self.h3, s)
     }
 
-    pub fn bullet(&self, s: &str) -> String {
+    pub fn bullet(&self, s: impl AsRef<str>) -> String {
         self.accent.paint(s)
     }
 
-    pub fn quote(&self, s: &str) -> String {
+    pub fn quote(&self, s: impl AsRef<str>) -> String {
         self.dim.paint(s)
     }
 
-    pub fn ok(&self, s: &str) -> String {
+    pub fn ok(&self, s: impl AsRef<str>) -> String {
         self.ok.paint(s)
     }
 
-    pub fn warn(&self, s: &str) -> String {
+    pub fn warn(&self, s: impl AsRef<str>) -> String {
         self.warn.paint(s)
     }
 
-    pub fn err(&self, s: &str) -> String {
+    pub fn err(&self, s: impl AsRef<str>) -> String {
         self.err.paint(s)
     }
 }
@@ -180,12 +193,12 @@ pub fn theme_by_name(name: &str) -> Theme {
         "mew-dark" => Theme {
             name: "mew-dark",
             border: Palette::BrightBlack,
-            primary: Palette::BrightCyan,
-            accent: Palette::BrightBlue,
+            primary: Palette::BrightWhite,
+            accent: Palette::BrightCyan,
             dim: Palette::BrightBlack,
-            h1: Palette::BrightCyan,
-            h2: Palette::BrightBlue,
-            h3: Palette::BrightWhite,
+            h1: Palette::BrightWhite,
+            h2: Palette::BrightCyan,
+            h3: Palette::BrightBlue,
             ok: Palette::BrightGreen,
             warn: Palette::BrightYellow,
             err: Palette::BrightRed,
@@ -259,6 +272,73 @@ fn crush_catppuccin() -> Theme {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct ThemeInfo {
+    pub name: &'static str,
+    pub description: &'static str,
+}
+
+pub const THEMES: &[ThemeInfo] = &[
+    ThemeInfo {
+        name: "mew-dark",
+        description: "high-contrast white and cyan for dark terminals",
+    },
+    ThemeInfo {
+        name: "claude-minimal",
+        description: "quiet, high-contrast minimal palette",
+    },
+    ThemeInfo {
+        name: "vector-mocha",
+        description: "warm mocha with bright vector accents",
+    },
+    ThemeInfo {
+        name: "crush-rose",
+        description: "rose and magenta accents",
+    },
+    ThemeInfo {
+        name: "crush-catppuccin",
+        description: "soft catppuccin colors with a rich CLI shell",
+    },
+    ThemeInfo {
+        name: "mew-cave",
+        description: "plain, compact caveman palette",
+    },
+    ThemeInfo {
+        name: "mono",
+        description: "monochrome terminal output",
+    },
+    ThemeInfo {
+        name: "no-color",
+        description: "disable ANSI styling",
+    },
+];
+
+pub fn theme_exists(name: &str) -> bool {
+    THEMES.iter().any(|theme| theme.name == name)
+}
+
 pub fn default_theme() -> Theme {
-    crush_catppuccin()
+    theme_by_name("mew-dark")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_theme_is_mew_dark_with_bright_primary_text() {
+        let theme = default_theme();
+        assert_eq!(theme.name, "mew-dark");
+        assert_eq!(theme.primary, Palette::BrightWhite);
+        assert_eq!(theme.accent, Palette::BrightCyan);
+    }
+
+    #[test]
+    fn bright_black_muted_roles_are_rendered_as_terminal_relative_dim() {
+        let theme = theme_by_name("crush-catppuccin");
+        assert_eq!(theme.border, Palette::BrightBlack);
+        assert_eq!(theme.dim, Palette::BrightBlack);
+        assert!(!theme.border("│").contains("[90m"));
+        assert!(!theme.dim("ready to send").contains("[90m"));
+    }
 }
